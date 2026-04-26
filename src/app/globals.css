@@ -1,0 +1,159 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f8fafc;
+  --foreground: #27364b;
+  --muted: #667085;
+  --border: #e8eef3;
+  --surface: #ffffff;
+  --surface-muted: #f3f5f8;
+  --brand: #0a9251;
+  --brand-deep: #045c38;
+  --brand-soft: #eef9f1;
+  --accent: #14d86b;
+  --danger: #ef4444;
+  --warning: #f6b31a;
+  --shadow-card: 0 18px 40px rgba(8, 21, 15, 0.06);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: "Instrument Sans", "Avenir Next", "Segoe UI", sans-serif;
+  --font-mono: "SFMono-Regular", "SF Mono", Consolas, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #eef2f4;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c2cdd0;
+  border-radius: 999px;
+}
+
+.auth-panel-bg {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.03) 100%),
+    linear-gradient(180deg, #045c38 0%, #035a37 100%);
+}
+
+.app-shell-gradient {
+  background:
+    radial-gradient(circle at top left, rgba(30, 188, 115, 0.16), transparent 28%),
+    radial-gradient(circle at bottom right, rgba(4, 91, 55, 0.18), transparent 22%),
+    linear-gradient(180deg, #0b5e39 0%, #044d2f 100%);
+}
+
+.wallet-balance-gradient {
+  background:
+    radial-gradient(circle at 78% 24%, rgba(255, 255, 255, 0.14) 0, transparent 18%),
+    linear-gradient(118deg, #00643a 0%, #007a45 42%, #3a8665 100%);
+}
+
+.wallet-stat-gradient {
+  background:
+    linear-gradient(118deg, rgba(0, 86, 50, 0.24), rgba(255, 255, 255, 0.09)),
+    rgba(255, 255, 255, 0.08);
+}
+
+.dashboard-black-button {
+  background: linear-gradient(180deg, #202020 0%, #151515 100%);
+  color: #ffffff;
+}
+
+.dashboard-black-button:hover {
+  background: linear-gradient(180deg, #2a2a2a 0%, #1b1b1b 100%);
+}
+
+.dashboard-soft-green-button {
+  background: linear-gradient(180deg, #f5fff8 0%, #dff4e7 100%);
+  color: #00643a;
+}
+
+.dashboard-soft-green-button:hover {
+  background: #ffffff;
+}
+
+.auth-grid-line::before,
+.auth-grid-line::after {
+  content: "";
+  position: absolute;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.auth-grid-line::before {
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+}
+
+.auth-grid-line::after {
+  bottom: 0;
+  left: 50%;
+  top: 0;
+  width: 1px;
+}
+
+.auth-logo-mask {
+  background: linear-gradient(90deg, #14d86b 0 20%, #0d1117 20% 96%, #14d86b 96% 100%);
+  mask-image: url("/images/white-logo.svg");
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
+  -webkit-mask-image: url("/images/white-logo.svg");
+  -webkit-mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+}
+
+.auth-logo-on-dark {
+  background: #ffffff;
+}
+
+.logo-on-light {
+  filter: brightness(0) saturate(100%) invert(20%) sepia(82%) saturate(1560%) hue-rotate(136deg) brightness(89%) contrast(101%);
+}
+
+.auth-hidden-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.auth-hidden-scrollbar::-webkit-scrollbar {
+  display: none;
+}
