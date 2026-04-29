@@ -25,6 +25,34 @@ export function getTransactionType(transaction: BusinessTransaction) {
   return "credit";
 }
 
+export function getTransactionCategory(transaction: BusinessTransaction) {
+  if (
+    transaction.paymentMethod === "checkout_fee" ||
+    transaction.channel === "checkout_fee" ||
+    String(transaction.reference || "").endsWith("-FEE")
+  ) {
+    return "Checkout Fee";
+  }
+
+  if (transaction.sourceType === "api_checkout") {
+    return "API Checkout";
+  }
+
+  if (transaction.sourceType === "payment_link") {
+    return "Payment Link";
+  }
+
+  if (transaction.channel === "settlement") {
+    return "Settlement";
+  }
+
+  if (transaction.paymentMethod === "bank_transfer") {
+    return "Bank Transfer";
+  }
+
+  return "General";
+}
+
 function TransactionTypeBadge({ type }: { type: "credit" | "debit" }) {
   return (
     <span
@@ -35,6 +63,14 @@ function TransactionTypeBadge({ type }: { type: "credit" | "debit" }) {
       }
     >
       {type === "credit" ? "Credit" : "Debit"}
+    </span>
+  );
+}
+
+function TransactionCategoryBadge({ category }: { category: string }) {
+  return (
+    <span className="inline-flex rounded-[999px] bg-[#f2f4f7] px-3 py-1 text-[12px] font-semibold text-[#344054]">
+      {category}
     </span>
   );
 }
@@ -58,6 +94,7 @@ export function TransactionsTable({
             <th className="px-4 py-4">Date</th>
             <th className="px-4 py-4">Reference</th>
             <th className="px-4 py-4">Narration</th>
+            <th className="px-4 py-4">Category</th>
             <th className="px-4 py-4">Type</th>
             <th className="px-4 py-4 text-right">Amount</th>
             <th className="px-4 py-4 text-right">Balance</th>
@@ -66,6 +103,7 @@ export function TransactionsTable({
         <tbody>
           {transactions.map((item) => {
             const transactionType = getTransactionType(item);
+            const transactionCategory = getTransactionCategory(item);
 
             return (
               <tr
@@ -90,6 +128,9 @@ export function TransactionsTable({
                   </span>
                 </td>
                 <td className="px-4 py-7">
+                  <TransactionCategoryBadge category={transactionCategory} />
+                </td>
+                <td className="px-4 py-7">
                   <TransactionTypeBadge type={transactionType} />
                 </td>
                 <td className="whitespace-nowrap px-4 py-7 text-right font-bold text-[#344054]">
@@ -103,7 +144,7 @@ export function TransactionsTable({
           })}
           {!transactions.length ? (
             <tr>
-              <td colSpan={6} className="px-6 py-14 text-center text-sm text-slate-400">
+              <td colSpan={7} className="px-6 py-14 text-center text-sm text-slate-400">
                 {emptyMessage}
               </td>
             </tr>

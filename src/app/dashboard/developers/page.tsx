@@ -9,7 +9,7 @@ import { Modal } from "@/components/ui/modal";
 import { Pagination } from "@/components/ui/pagination";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Tabs } from "@/components/ui/tabs";
-import { MoreIcon, SearchIcon } from "@/components/ui/icons";
+import { CheckIcon, CopyIcon, MoreIcon, SearchIcon } from "@/components/ui/icons";
 import { merchantApi } from "@/lib/merchant-api";
 import type { ApiKeyEnvironment, AuditLog, WebhookConfig, WebhookLog } from "@/lib/types";
 import { formatDateTime } from "@/lib/utils";
@@ -17,6 +17,11 @@ import { formatDateTime } from "@/lib/utils";
 type ApiKeysResponse = {
   live?: ApiKeyEnvironment;
   test?: ApiKeyEnvironment;
+};
+
+type GeneratedKeyState = {
+  publicKey?: string;
+  secretKey?: string;
 };
 
 const keyFallbacks = {
@@ -45,6 +50,10 @@ export default function DevelopersPage() {
   });
   const [webhookLogs, setWebhookLogs] = useState<WebhookLog[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [generatedKeys, setGeneratedKeys] = useState<Record<"live" | "test", GeneratedKeyState>>({
+    live: {},
+    test: {},
+  });
   const [logPage, setLogPage] = useState(1);
   const [logPages, setLogPages] = useState(1);
   const [message, setMessage] = useState<string | null>(null);
@@ -97,6 +106,13 @@ export default function DevelopersPage() {
 
     setMessage(response.message);
     if (response.statusCode === 200) {
+      setGeneratedKeys((current) => ({
+        ...current,
+        [environment]: {
+          publicKey: response.data?.publicKey,
+          secretKey: response.data?.secretKey,
+        },
+      }));
       const keysResponse = await merchantApi.getApiKeys(session.token);
       if (keysResponse.statusCode === 200) {
         setApiKeys(keysResponse.data as ApiKeysResponse);
@@ -121,8 +137,18 @@ export default function DevelopersPage() {
 
       {tab === "api-keys" ? (
         <Card className="p-6">
-          <ApiKeySection title="Live API Keys" env="live" keys={apiKeys.live} onRegenerate={() => handleGenerate("live")} />
-          <ApiKeySection title="Test API Keys" env="test" keys={apiKeys.test} onRegenerate={() => handleGenerate("test")} />
+          <ApiKeySection
+            title="Live API Keys"
+            env="live"
+            keys={apiKeys.live}
+            generatedKeys={generatedKeys.live}
+          />
+          <ApiKeySection
+            title="Test API Keys"
+            env="test"
+            keys={apiKeys.test}
+            generatedKeys={generatedKeys.test}
+          />
           <div className="mt-12 flex justify-end">
             <Button className="dashboard-black-button h-[54px] rounded-[10px] px-9 text-[16px] font-bold" onClick={() => handleGenerate("live")}>Regenerate Keys</Button>
           </div>
@@ -468,17 +494,30 @@ function ApiKeySection({
   title,
   env,
   keys,
+  generatedKeys,
 }: {
   title: string;
   env: "live" | "test";
   keys?: ApiKeyEnvironment;
-  onRegenerate: () => void;
+  generatedKeys?: GeneratedKeyState;
 }) {
   const fallback = keyFallbacks[env];
   const rows = [
-    ["Public Key", "Use this for client-side integration", keys?.publicKey || fallback.publicKey],
-    ["Secret Key", "Use this for server-side integration", keys?.secretKeyPreview || fallback.secretKeyPreview],
-    ["Encryption Key", "Use this for server-side integration", fallback.encryptionKey],
+    [
+      "Public Key",
+      "Use this for client-side integration",
+      generatedKeys?.publicKey || keys?.publicKey || fallback.publicKey,
+    ],
+    [
+      "Secret Key",
+      "Use this for server-side integration",
+      generatedKeys?.secretKey || keys?.secretKeyPreview || fallback.secretKeyPreview,
+    ],
+    [
+      "Encryption Key",
+      "Use this for server-side integration",
+      fallback.encryptionKey,
+    ],
   ];
 
   return (
@@ -492,14 +531,47 @@ function ApiKeySection({
                 <p className="text-[13px] font-bold text-[#202939]">{label}</p>
                 <p className="mt-2 text-[13px] font-medium text-[#667085]">{hint}</p>
               </div>
-              <div className="rounded-[6px] bg-white px-4 py-3 text-[14px] font-semibold text-[#202939]">
-                {value}
-              </div>
+              <MaskedKeyValue value={value} />
             </div>
           ))}
         </div>
       </div>
     </section>
+  );
+}
+
+function maskKey(value: string) {
+  if (value.length <= 8) {
+    return "*****";
+  }
+
+  return `*****....${value.slice(-6)}`;
+}
+
+function MaskedKeyValue({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false);
+
+  async function handleCopy() {
+    await navigator.clipboard.writeText(value);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1200);
+  }
+
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-[6px] bg-white px-4 py-3 text-[14px] font-semibold text-[#202939]">
+      <span className="truncate">{maskKey(value)}</span>
+      <button
+        type="button"
+        onClick={() => {
+          void handleCopy();
+        }}
+        className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] bg-[#f2f4f7] text-[#344054] transition hover:bg-[#e9eef4]"
+        aria-label="Copy key"
+        title="Copy key"
+      >
+        {copied ? <CheckIcon className="h-4 w-4" /> : <CopyIcon className="h-4 w-4" />}
+      </button>
+    </div>
   );
 }
 

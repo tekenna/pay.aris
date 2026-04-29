@@ -170,6 +170,19 @@ export function AccountsIcon(props: IconProps) {
   );
 }
 
+export function BankIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M3 10 12 5l9 5" />
+      <path d="M5 10v8" />
+      <path d="M9 10v8" />
+      <path d="M15 10v8" />
+      <path d="M19 10v8" />
+      <path d="M3 18h18" />
+    </Svg>
+  );
+}
+
 export function PaymentIcon(props: IconProps) {
   return (
     <Svg {...props}>
@@ -214,6 +227,15 @@ export function ChevronLeft(props: IconProps) {
   return (
     <Svg {...props}>
       <path d="m15 18-6-6 6-6" />
+    </Svg>
+  );
+}
+
+export function CopyIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <rect x="9" y="9" width="11" height="11" rx="2" />
+      <path d="M6 15H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1" />
     </Svg>
   );
 }

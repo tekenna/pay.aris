@@ -19,7 +19,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: "Instrument Sans", "Avenir Next", "Segoe UI", sans-serif;
+  --font-sans: "Archivo", "Segoe UI", sans-serif;
   --font-mono: "SFMono-Regular", "SF Mono", Consolas, monospace;
 }
 
@@ -67,20 +67,36 @@ textarea {
 
 .auth-panel-bg {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.03) 100%),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.06) 0%,
+      rgba(255, 255, 255, 0.03) 100%
+    ),
     linear-gradient(180deg, #045c38 0%, #035a37 100%);
 }
 
 .app-shell-gradient {
   background:
-    radial-gradient(circle at top left, rgba(30, 188, 115, 0.16), transparent 28%),
-    radial-gradient(circle at bottom right, rgba(4, 91, 55, 0.18), transparent 22%),
+    radial-gradient(
+      circle at top left,
+      rgba(30, 188, 115, 0.16),
+      transparent 28%
+    ),
+    radial-gradient(
+      circle at bottom right,
+      rgba(4, 91, 55, 0.18),
+      transparent 22%
+    ),
     linear-gradient(180deg, #0b5e39 0%, #044d2f 100%);
 }
 
 .wallet-balance-gradient {
   background:
-    radial-gradient(circle at 78% 24%, rgba(255, 255, 255, 0.14) 0, transparent 18%),
+    radial-gradient(
+      circle at 78% 24%,
+      rgba(255, 255, 255, 0.14) 0,
+      transparent 18%
+    ),
     linear-gradient(118deg, #00643a 0%, #007a45 42%, #3a8665 100%);
 }
 
@@ -130,7 +146,12 @@ textarea {
 }
 
 .auth-logo-mask {
-  background: linear-gradient(90deg, #14d86b 0 20%, #0d1117 20% 96%, #14d86b 96% 100%);
+  background: linear-gradient(
+    90deg,
+    #14d86b 0 20%,
+    #0d1117 20% 96%,
+    #14d86b 96% 100%
+  );
   mask-image: url("/images/white-logo.svg");
   mask-position: center;
   mask-repeat: no-repeat;
@@ -146,7 +167,8 @@ textarea {
 }
 
 .logo-on-light {
-  filter: brightness(0) saturate(100%) invert(20%) sepia(82%) saturate(1560%) hue-rotate(136deg) brightness(89%) contrast(101%);
+  filter: brightness(0) saturate(100%) invert(20%) sepia(82%) saturate(1560%)
+    hue-rotate(136deg) brightness(89%) contrast(101%);
 }
 
 .auth-hidden-scrollbar {

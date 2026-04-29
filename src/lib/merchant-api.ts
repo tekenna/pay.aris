@@ -2,11 +2,17 @@ import type {
   ApiResponse,
   AuditLog,
   Business,
+  BusinessAccountLedgerEntry,
+  MerchantBank,
   BusinessSession,
+  BusinessSettlementAccount,
+  BusinessTeamMember,
   BusinessTransaction,
   CheckoutConfig,
   CheckoutSession,
   MerchantDashboardOverview,
+  RecentBusinessTransfer,
+  ValidatedTransferAccount,
   WebhookConfig,
   WebhookLog,
 } from "@/lib/types";
@@ -93,6 +99,25 @@ export const merchantApi = {
     return request<BusinessSession>("/business-auth/login", {
       method: "POST",
       body: { emailAddress, password },
+    });
+  },
+  previewInvitation(token: string) {
+    return request<{
+      businessName?: string | null;
+      firstName?: string | null;
+      lastName?: string | null;
+      emailAddress?: string | null;
+      role?: string | null;
+      status?: string | null;
+    }>("/business-auth/invitation/preview", {
+      method: "POST",
+      body: { token },
+    });
+  },
+  acceptInvitation(token: string, password: string) {
+    return request<{ member: BusinessTeamMember }>("/business-auth/invitation/accept", {
+      method: "POST",
+      body: { token, password },
     });
   },
   getProfile(token: string) {
@@ -217,9 +242,139 @@ export const merchantApi = {
   getCheckoutConfig(token: string) {
     return request<CheckoutConfig>("/businesses/checkout-config", { token });
   },
+  getAccountById(token: string, accountId: string, params: URLSearchParams) {
+    return request<{
+      account: BusinessSettlementAccount;
+      ledger: BusinessAccountLedgerEntry[];
+    }>(`/businesses/accounts/${accountId}?${params.toString()}`, { token });
+  },
+  getRecentTransfers(token: string) {
+    return request<RecentBusinessTransfer[]>("/businesses/transfers/recents", { token });
+  },
+  getTransferBanks(token: string) {
+    return request<MerchantBank[]>("/businesses/transfers/banks", { token });
+  },
+  validateTransferAccount(
+    token: string,
+    body: { accountNumber: string; bankCode: string },
+  ) {
+    return request<ValidatedTransferAccount>("/businesses/transfers/name-inquiry", {
+      method: "POST",
+      token,
+      body,
+    });
+  },
+  createTransfer(
+    token: string,
+    body: {
+      accountId: "primary" | "checkout";
+      destinationAccountNumber: string;
+      destinationAccountName: string;
+      bankCode: string;
+      bankName?: string;
+      amount: number;
+      pin: string;
+      sessionId: string;
+      narration?: string;
+    },
+  ) {
+    return request<{
+      reference: string;
+      providerReference?: string | null;
+      status: string;
+      amount: number;
+      fee: number;
+      totalDebit: number;
+      recipient: {
+        accountName: string;
+        accountNumber: string;
+        bankName?: string | null;
+        bankCode: string;
+      };
+      sender: {
+        accountId: "primary" | "checkout";
+        accountName: string;
+        accountNumber: string;
+        bankName: string;
+      };
+    }>("/businesses/transfers", {
+      method: "POST",
+      token,
+      body,
+    });
+  },
   updateCheckoutConfig(token: string, body: Record<string, unknown>) {
     return request<CheckoutConfig>("/businesses/checkout-config", {
       method: "PUT",
+      token,
+      body,
+    });
+  },
+  getTeamMembers(token: string) {
+    return request<BusinessTeamMember[]>("/businesses/team-members", { token });
+  },
+  inviteTeamMember(
+    token: string,
+    body: {
+      firstName: string;
+      lastName: string;
+      emailAddress: string;
+      phoneNumber: string;
+      role: "admin" | "support" | "developer";
+    },
+  ) {
+    return request<BusinessTeamMember>("/businesses/team-members/invite", {
+      method: "POST",
+      token,
+      body,
+    });
+  },
+  verifySecurityPassword(token: string, password: string) {
+    return request<{ hasPaymentPin: boolean }>("/businesses/security/password/verify", {
+      method: "POST",
+      token,
+      body: { password },
+    });
+  },
+  sendPaymentPinOtp(token: string, password: string) {
+    return request<{ otpId: string; recipient: string; hasPaymentPin: boolean }>(
+      "/businesses/security/pin/otp",
+      {
+        method: "POST",
+        token,
+        body: { password },
+      },
+    );
+  },
+  verifyPaymentPinOtp(token: string, body: { otpId: string; otp: string }) {
+    return request<{ otpId: string; verified: boolean; hasPaymentPin: boolean }>(
+      "/businesses/security/pin/otp/verify",
+      {
+        method: "POST",
+        token,
+        body,
+      },
+    );
+  },
+  createPaymentPin(token: string, body: { otpId: string; otp: string; pin: string; confirmPin: string }) {
+    return request<{ hasPaymentPin: boolean }>("/businesses/security/pin/create", {
+      method: "POST",
+      token,
+      body,
+    });
+  },
+  changePaymentPin(
+    token: string,
+    body: {
+      otpId: string;
+      otp: string;
+      oldPin: string;
+      newPin: string;
+      confirmNewPin: string;
+    },
+  ) {
+    return request<{ hasPaymentPin: boolean }>("/businesses/security/pin/change", {
+      method: "POST",
       token,
       body,
     });

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { MerchantShell } from "@/components/dashboard/merchant-shell";
 import { useBusinessSession } from "@/store/business-session-provider";
@@ -149,12 +150,12 @@ export default function AccountsPage() {
             >
               {isRefreshing ? "Refreshing" : "Refresh"}
             </Button>
-            <Button
-              type="button"
-              className="dashboard-soft-green-button h-[48px] min-w-[156px] rounded-[8px] text-[16px] font-bold"
+            <Link
+              href="/dashboard/accounts/withdraw"
+              className="dashboard-soft-green-button inline-flex h-[48px] min-w-[156px] items-center justify-center rounded-[8px] px-5 text-[16px] font-bold"
             >
               Withdraw
-            </Button>
+            </Link>
           </div>
         </div>
 
@@ -200,22 +201,29 @@ export default function AccountsPage() {
             <tbody>
               {accounts.map((account) => (
                 <tr key={account.id} className="border-b border-slate-100 text-[#101828]">
-                  <td className="px-4 py-6 font-medium">{account.bankName}</td>
-                  <td className="px-4 py-6">{account.accountName}</td>
-                  <td className="px-4 py-6">{account.accountNumber}</td>
-                  <td className="px-4 py-6 font-semibold text-[#344054]">
-                    {formatCurrency(account.balance, account.currency)}
-                  </td>
-                  <td className="px-4 py-6">
-                    <span className="inline-flex h-6 items-center rounded-full bg-[#e8f8ee] px-3 text-xs font-bold text-[#00884f]">
-                      {account.currency}
-                    </span>
-                  </td>
-                  <td className="px-4 py-6">
-                    <StatusBadge value={account.status} />
-                  </td>
-                  <td className="px-4 py-6 text-right text-xl font-bold text-[#667085]">
-                    ⋮
+                  <td colSpan={7} className="p-0">
+                    <Link
+                      href={`/dashboard/accounts/${account.id}`}
+                      className="grid min-h-[76px] items-center px-4 text-left transition hover:bg-slate-50 md:grid-cols-[1.2fr_1.2fr_1fr_1fr_0.8fr_0.7fr_40px]"
+                    >
+                      <span className="py-6 font-medium">{account.bankName}</span>
+                      <span className="py-6">{account.accountName}</span>
+                      <span className="py-6">{account.accountNumber}</span>
+                      <span className="py-6 font-semibold text-[#344054]">
+                        {formatCurrency(account.balance, account.currency)}
+                      </span>
+                      <span className="py-6">
+                        <span className="inline-flex h-6 items-center rounded-full bg-[#e8f8ee] px-3 text-xs font-bold text-[#00884f]">
+                          {account.currency}
+                        </span>
+                      </span>
+                      <span className="py-6">
+                        <StatusBadge value={account.status} />
+                      </span>
+                      <span className="py-6 text-right text-xl font-bold text-[#667085]">
+                        ›
+                      </span>
+                    </Link>
                   </td>
                 </tr>
               ))}

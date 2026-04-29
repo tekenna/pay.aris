@@ -7,6 +7,7 @@ import { useBusinessSession } from "@/store/business-session-provider";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Modal } from "@/components/ui/modal";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Tabs } from "@/components/ui/tabs";
 import {
@@ -17,46 +18,13 @@ import {
   XIcon,
 } from "@/components/ui/icons";
 import { merchantApi } from "@/lib/merchant-api";
-import type { Business, CheckoutConfig } from "@/lib/types";
+import type { Business, BusinessTeamMember, CheckoutConfig } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type SettingsTab = "profile" | "compliance" | "checkout" | "security" | "team";
 type SettingsDrawer = "invite" | "upload" | null;
 
-const teamRows = [
-  {
-    name: "Amos Bwala",
-    initials: "AE",
-    email: "amos1@gmail.com",
-    role: "Accountant",
-    status: "Active",
-    roleClassName: "bg-[#efe8ff] text-[#6941c6]",
-  },
-  {
-    name: "Dolapo Ojo",
-    initials: "AE",
-    email: "ojod1@yahoo.com",
-    role: "Auditor",
-    status: "Pending",
-    roleClassName: "bg-[#fff1df] text-[#d06b12]",
-  },
-  {
-    name: "Khattab Yahaya",
-    initials: "AE",
-    email: "yk100@gmail.com",
-    role: "Developer",
-    status: "Active",
-    roleClassName: "bg-[#fff7d7] text-[#a35c00]",
-  },
-  {
-    name: "Abel Samson",
-    initials: "AE",
-    email: "abel001@gmail.com",
-    role: "Owner",
-    status: "Active",
-    roleClassName: "bg-[#e8f1ff] text-[#1b66c9]",
-  },
-];
+const OWNER_ADMIN_ROLES = new Set(["owner", "admin"]);
 
 export default function SettingsPage() {
   const { session, setSession } = useBusinessSession();
@@ -67,6 +35,8 @@ export default function SettingsPage() {
     primaryColor: "#0F172A",
     secondaryColor: "#16A34A",
   });
+  const [teamMembers, setTeamMembers] = useState<BusinessTeamMember[]>([]);
+  const [isInvitingMember, setIsInvitingMember] = useState(false);
   const [isSavingCheckout, setIsSavingCheckout] = useState(false);
 
   useEffect(() => {
@@ -100,6 +70,13 @@ export default function SettingsPage() {
       if (checkoutResponse.statusCode === 200) {
         setCheckout(checkoutResponse.data);
       }
+
+      if (OWNER_ADMIN_ROLES.has(session.business.currentRole || "owner")) {
+        const teamResponse = await merchantApi.getTeamMembers(session.token);
+        if (teamResponse.statusCode === 200) {
+          setTeamMembers(teamResponse.data);
+        }
+      }
     }
 
     void loadData();
@@ -109,19 +86,23 @@ export default function SettingsPage() {
   const email = profile?.emailAddress || session?.business.emailAddress || "ariswallex@gmail.com";
   const phoneNumber = profile?.phoneNumber || session?.business.phoneNumber || "+234 709 674 3456";
   const address = profile?.address || session?.business.address;
+  const currentRole = (profile?.currentRole || session?.business.currentRole || "owner").toLowerCase();
+  const canViewSecurity = OWNER_ADMIN_ROLES.has(currentRole);
+  const canManageTeam = OWNER_ADMIN_ROLES.has(currentRole);
+  const tabItems = [
+    { label: "Profile", value: "profile" },
+    { label: "Compliance", value: "compliance" },
+    { label: "Checkout Preferences", value: "checkout" },
+    ...(canViewSecurity ? [{ label: "Security", value: "security" }] : []),
+    ...(canManageTeam ? [{ label: "Team", value: "team" }] : []),
+  ];
 
   return (
     <MerchantShell title="Settings">
       <Tabs
         value={tab}
         onChange={(nextTab) => setTab(nextTab as SettingsTab)}
-        items={[
-          { label: "Profile", value: "profile" },
-          { label: "Compliance", value: "compliance" },
-          { label: "Checkout Preferences", value: "checkout" },
-          { label: "Security", value: "security" },
-          { label: "Team", value: "team" },
-        ]}
+        items={tabItems}
       />
 
       {tab === "profile" ? (
@@ -167,6 +148,23 @@ export default function SettingsPage() {
 
               if (response.statusCode === 200) {
                 setCheckout(response.data);
+                setProfile((current) =>
+                  current
+                    ? {
+                        ...current,
+                        checkoutConfig: response.data,
+                      }
+                    : current,
+                );
+                if (session?.token) {
+                  setSession({
+                    token: session.token,
+                    business: {
+                      ...(profile || session.business),
+                      checkoutConfig: response.data,
+                    },
+                  });
+                }
               }
             } finally {
               setIsSavingCheckout(false);
@@ -175,10 +173,72 @@ export default function SettingsPage() {
         />
       ) : null}
 
-      {tab === "security" ? <SecurityPanel /> : null}
-      {tab === "team" ? <TeamPanel onInvite={() => setDrawer("invite")} /> : null}
+      {tab === "security" && canViewSecurity ? (
+        <SecurityPanel
+          profile={profile || session?.business || null}
+          token={session?.token}
+          onPinUpdated={(hasPaymentPin) => {
+            setProfile((current) =>
+              current
+                ? {
+                    ...current,
+                    hasPaymentPin,
+                  }
+                : current,
+            );
 
-      <InviteMemberDrawer open={drawer === "invite"} onClose={() => setDrawer(null)} />
+            if (session?.token) {
+              setSession({
+                token: session.token,
+                business: {
+                  ...(profile || session.business),
+                  hasPaymentPin,
+                },
+              });
+            }
+          }}
+        />
+      ) : null}
+      {tab === "team" && canManageTeam ? (
+        <TeamPanel members={teamMembers} onInvite={() => setDrawer("invite")} />
+      ) : null}
+
+      <InviteMemberDrawer
+        open={drawer === "invite"}
+        onClose={() => setDrawer(null)}
+        loading={isInvitingMember}
+        onInvite={async (payload) => {
+          if (!session?.token) {
+            return;
+          }
+
+          setIsInvitingMember(true);
+          try {
+            const response = await merchantApi.inviteTeamMember(session.token, payload);
+            if (response.statusCode !== 200) {
+              toast.error(response.message || "Unable to invite team member.");
+              return;
+            }
+
+            setTeamMembers((current) => {
+              const existingIndex = current.findIndex((member) => member._id === response.data._id);
+              if (existingIndex >= 0) {
+                const next = [...current];
+                next[existingIndex] = response.data;
+                return next;
+              }
+
+              return [...current, response.data];
+            });
+            toast.success(response.message || "Invitation sent successfully.");
+            setDrawer(null);
+          } catch (error) {
+            toast.error(error instanceof Error ? error.message : "Unable to invite team member.");
+          } finally {
+            setIsInvitingMember(false);
+          }
+        }}
+      />
       <UploadImageDrawer open={drawer === "upload"} onClose={() => setDrawer(null)} />
     </MerchantShell>
   );
@@ -609,81 +669,411 @@ function CheckoutPanel({
   );
 }
 
-function SecurityPanel() {
-  return (
-    <Card className="min-h-[690px] border-[#eef1f5] bg-white px-8 py-9">
-      <p className="text-[18px] font-semibold text-[#101828]">Change Password</p>
-      <div className="mt-7 grid max-w-[464px] gap-5">
-        <Input
-          placeholder="Old Password"
-          type="password"
-          fieldClassName="border-transparent bg-[#f3f5f8]"
-          aria-label="Old Password"
-        />
-        <Input
-          placeholder="New Password"
-          type="password"
-          fieldClassName="border-transparent bg-[#f3f5f8]"
-          aria-label="New Password"
-        />
-        <Button className="dashboard-black-button mt-1 w-[196px]">Update</Button>
-      </div>
-
-      <div className="my-10 border-t border-[#eef1f5]" />
-
-      <p className="text-[18px] font-semibold text-[#101828]">Set 2FA</p>
-      <p className="mt-2 max-w-[620px] text-[14px] leading-6 text-[#667085]">
-        Protect your Aris Wallex workspace with an extra verification step when signing in or approving sensitive actions.
-      </p>
-
-      <div className="mt-7 grid max-w-[760px] gap-4">
-        <SecurityOption
-          icon={<ScanIcon className="h-5 w-5" />}
-          title="PIN"
-          description="Use a 4-digit security PIN to verify your account"
-        />
-        <SecurityOption
-          icon={<UserSquareIcon className="h-5 w-5" />}
-          title="Authenticator App"
-          description="Use an authenticator app to generate a timely code."
-        />
-      </div>
-    </Card>
-  );
-}
-
-function SecurityOption({
-  icon,
-  title,
-  description,
+function SecurityPanel({
+  profile,
+  token,
+  onPinUpdated,
 }: {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
+  profile: Business | null;
+  token?: string;
+  onPinUpdated: (hasPaymentPin: boolean) => void;
 }) {
+  const hasPaymentPin = Boolean(profile?.hasPaymentPin);
+  const [modalStep, setModalStep] = useState<
+    "closed" | "password" | "otp" | "pin" | "success"
+  >("closed");
+  const [intent, setIntent] = useState<"create" | "change">(
+    hasPaymentPin ? "change" : "create",
+  );
+  const [loading, setLoading] = useState<"password" | "otp" | "pin" | null>(null);
+  const [otpId, setOtpId] = useState("");
+  const [otpRecipient, setOtpRecipient] = useState(profile?.emailAddress || "");
+  const [password, setPassword] = useState("");
+  const [otp, setOtp] = useState("");
+  const [pin, setPin] = useState("");
+  const [confirmPin, setConfirmPin] = useState("");
+  const [oldPin, setOldPin] = useState("");
+  const [newPin, setNewPin] = useState("");
+  const [confirmNewPin, setConfirmNewPin] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+
+  function resetFlow() {
+    setModalStep("closed");
+    setLoading(null);
+    setOtpId("");
+    setPassword("");
+    setOtp("");
+    setPin("");
+    setConfirmPin("");
+    setOldPin("");
+    setNewPin("");
+    setConfirmNewPin("");
+    setSuccessMessage("");
+  }
+
+  function openFlow(nextIntent: "create" | "change") {
+    setIntent(nextIntent);
+    setOtpRecipient(profile?.emailAddress || "");
+    setPassword("");
+    setOtp("");
+    setPin("");
+    setConfirmPin("");
+    setOldPin("");
+    setNewPin("");
+    setConfirmNewPin("");
+    setSuccessMessage("");
+    setModalStep("password");
+  }
+
+  async function handlePasswordVerification() {
+    if (!token || !password) {
+      toast.error("Enter your password to continue.");
+      return;
+    }
+
+    setLoading("password");
+    try {
+      const response = await merchantApi.sendPaymentPinOtp(token, password);
+      if (response.statusCode !== 200 || !response.data?.otpId) {
+        toast.error(response.message || "Unable to verify password.");
+        return;
+      }
+
+      setOtpId(response.data.otpId);
+      setOtpRecipient(response.data.recipient || profile?.emailAddress || "");
+      setModalStep("otp");
+      toast.success("OTP sent to your email address.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to verify password.");
+    } finally {
+      setLoading(null);
+    }
+  }
+
+  async function handleOtpVerification() {
+    if (!token || !otpId || !otp) {
+      toast.error("Enter the OTP to continue.");
+      return;
+    }
+
+    setLoading("otp");
+    try {
+      const response = await merchantApi.verifyPaymentPinOtp(token, { otpId, otp });
+      if (response.statusCode !== 200) {
+        toast.error(response.message || "OTP verification failed.");
+        return;
+      }
+
+      setModalStep("pin");
+      toast.success("OTP verified.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "OTP verification failed.");
+    } finally {
+      setLoading(null);
+    }
+  }
+
+  async function handlePinSubmit() {
+    if (!token || !otpId || !otp) {
+      toast.error("Restart the flow and verify your OTP again.");
+      return;
+    }
+
+    if (intent === "create") {
+      if (!/^\d{4}$/.test(pin)) {
+        toast.error("PIN must be a 4-digit number.");
+        return;
+      }
+
+      if (pin !== confirmPin) {
+        toast.error("PIN confirmation does not match.");
+        return;
+      }
+    } else {
+      if (!oldPin) {
+        toast.error("Enter your current PIN.");
+        return;
+      }
+      if (!/^\d{4}$/.test(newPin)) {
+        toast.error("New PIN must be a 4-digit number.");
+        return;
+      }
+      if (newPin !== confirmNewPin) {
+        toast.error("New PIN confirmation does not match.");
+        return;
+      }
+    }
+
+    setLoading("pin");
+    try {
+      const response =
+        intent === "create"
+          ? await merchantApi.createPaymentPin(token, {
+              otpId,
+              otp,
+              pin,
+              confirmPin,
+            })
+          : await merchantApi.changePaymentPin(token, {
+              otpId,
+              otp,
+              oldPin,
+              newPin,
+              confirmNewPin,
+            });
+
+      if (response.statusCode !== 200) {
+        toast.error(response.message || "Unable to update payment PIN.");
+        return;
+      }
+
+      onPinUpdated(true);
+      setSuccessMessage(
+        intent === "create"
+          ? "Your transfer PIN has been created successfully."
+          : "Your transfer PIN has been changed successfully.",
+      );
+      setModalStep("success");
+      toast.success(response.message || "Payment PIN updated.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to update payment PIN.");
+    } finally {
+      setLoading(null);
+    }
+  }
+
   return (
-    <div className="flex min-h-[74px] items-center justify-between gap-4 rounded-[12px] bg-[#f8fafb] px-4">
-      <div className="flex min-w-0 items-center gap-4">
-        <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-[#667085] shadow-sm">
-          {icon}
-        </span>
-        <span className="min-w-0">
-          <span className="block text-[14px] font-semibold text-[#344054]">{title}</span>
-          <span className="mt-1 block text-[13px] text-[#98a2b3]">{description}</span>
-        </span>
-      </div>
-      <button
-        type="button"
-        className="relative h-[26px] w-[46px] shrink-0 rounded-full bg-[#d0d5dd] transition"
-        aria-label={`${title} disabled`}
+    <>
+      <Card className="min-h-[690px] border-[#eef1f5] bg-white px-8 py-9">
+        <p className="text-[18px] font-semibold text-[#101828]">Transfer Security</p>
+        <p className="mt-2 max-w-[620px] text-[14px] leading-6 text-[#667085]">
+          Your payment PIN is used to authorize transfers inside Aris Pay. We&apos;ll confirm your
+          password and email OTP before any PIN change.
+        </p>
+
+        <div className="mt-8 max-w-[760px] rounded-[18px] border border-[#eef1f5] bg-[#f8fafb] p-5">
+          <div className="flex flex-wrap items-start justify-between gap-5">
+            <div className="flex min-w-0 items-center gap-4">
+              <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white text-[#667085] shadow-sm">
+                <ScanIcon className="h-5 w-5" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-[15px] font-semibold text-[#101828]">Payment PIN</p>
+                <p className="mt-1 text-[13px] leading-6 text-[#667085]">
+                  {hasPaymentPin
+                    ? "Your 4-digit transfer PIN is active and will be required when completing transfers."
+                    : "Create a 4-digit transfer PIN to secure payouts and transfer approvals."}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <span
+                className={cn(
+                  "inline-flex rounded-full px-3 py-1 text-xs font-semibold",
+                  hasPaymentPin ? "bg-[#e8f6ef] text-[#0a9550]" : "bg-[#fff4e5] text-[#c26a00]",
+                )}
+              >
+                {hasPaymentPin ? "Active" : "Not Set"}
+              </span>
+              <Button
+                className="dashboard-black-button h-11 px-5"
+                onClick={() => openFlow(hasPaymentPin ? "change" : "create")}
+              >
+                {hasPaymentPin ? "Change PIN" : "Create PIN"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      <Modal
+        open={modalStep !== "closed"}
+        onClose={resetFlow}
+        title={
+          modalStep === "password"
+            ? intent === "create"
+              ? "Confirm your password"
+              : "Confirm your password"
+            : modalStep === "otp"
+              ? "Verify OTP"
+              : modalStep === "pin"
+                ? intent === "create"
+                  ? "Create transfer PIN"
+                  : "Change transfer PIN"
+                : "PIN updated"
+        }
+        description={
+          modalStep === "password"
+            ? "Enter your account password before we send a verification code."
+            : modalStep === "otp"
+              ? `Enter the OTP sent to ${otpRecipient || "your email address"}.`
+              : modalStep === "pin"
+                ? intent === "create"
+                  ? "Create a 4-digit PIN for approving transfers."
+                  : "Update the 4-digit PIN used for approving transfers."
+                : successMessage
+        }
+        maxWidthClassName="max-w-lg"
       >
-        <span className="absolute left-[3px] top-[3px] h-5 w-5 rounded-full bg-white shadow-sm" />
-      </button>
-    </div>
+        {modalStep === "password" ? (
+          <div className="space-y-5">
+            <Input
+              label="Password"
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              fieldClassName="border-transparent bg-[#f3f5f8]"
+            />
+            <div className="flex justify-end gap-3">
+              <Button
+                type="button"
+                className="h-11 border border-[#d0d5dd] bg-white px-5 text-[#344054] hover:bg-[#f8fafb]"
+                onClick={resetFlow}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                loading={loading === "password"}
+                className="dashboard-black-button h-11 px-5"
+                onClick={() => void handlePasswordVerification()}
+              >
+                Continue
+              </Button>
+            </div>
+          </div>
+        ) : null}
+
+        {modalStep === "otp" ? (
+          <div className="space-y-5">
+            <Input
+              label="One-Time Password"
+              value={otp}
+              onChange={(event) => setOtp(event.target.value)}
+              fieldClassName="border-transparent bg-[#f3f5f8]"
+            />
+            <div className="flex justify-end gap-3">
+              <Button
+                type="button"
+                className="h-11 border border-[#d0d5dd] bg-white px-5 text-[#344054] hover:bg-[#f8fafb]"
+                onClick={resetFlow}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                loading={loading === "otp"}
+                className="dashboard-black-button h-11 px-5"
+                onClick={() => void handleOtpVerification()}
+              >
+                Verify OTP
+              </Button>
+            </div>
+          </div>
+        ) : null}
+
+        {modalStep === "pin" ? (
+          <div className="space-y-5">
+            {intent === "create" ? (
+              <>
+                <Input
+                  label="Enter PIN"
+                  type="password"
+                  value={pin}
+                  onChange={(event) => setPin(event.target.value)}
+                  fieldClassName="border-transparent bg-[#f3f5f8]"
+                />
+                <Input
+                  label="Re-enter PIN"
+                  type="password"
+                  value={confirmPin}
+                  onChange={(event) => setConfirmPin(event.target.value)}
+                  fieldClassName="border-transparent bg-[#f3f5f8]"
+                />
+              </>
+            ) : (
+              <>
+                <Input
+                  label="Old PIN"
+                  type="password"
+                  value={oldPin}
+                  onChange={(event) => setOldPin(event.target.value)}
+                  fieldClassName="border-transparent bg-[#f3f5f8]"
+                />
+                <Input
+                  label="New PIN"
+                  type="password"
+                  value={newPin}
+                  onChange={(event) => setNewPin(event.target.value)}
+                  fieldClassName="border-transparent bg-[#f3f5f8]"
+                />
+                <Input
+                  label="Confirm New PIN"
+                  type="password"
+                  value={confirmNewPin}
+                  onChange={(event) => setConfirmNewPin(event.target.value)}
+                  fieldClassName="border-transparent bg-[#f3f5f8]"
+                />
+              </>
+            )}
+            <div className="flex justify-end gap-3">
+              <Button
+                type="button"
+                className="h-11 border border-[#d0d5dd] bg-white px-5 text-[#344054] hover:bg-[#f8fafb]"
+                onClick={resetFlow}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                loading={loading === "pin"}
+                className="dashboard-black-button h-11 px-5"
+                onClick={() => void handlePinSubmit()}
+              >
+                {intent === "create" ? "Create PIN" : "Change PIN"}
+              </Button>
+            </div>
+          </div>
+        ) : null}
+
+        {modalStep === "success" ? (
+          <div className="space-y-5">
+            <div className="rounded-[18px] bg-[#f8fafb] p-5 text-sm leading-6 text-[#667085]">
+              {successMessage}
+            </div>
+            <div className="flex justify-end">
+              <Button type="button" className="dashboard-black-button h-11 px-5" onClick={resetFlow}>
+                Done
+              </Button>
+            </div>
+          </div>
+        ) : null}
+      </Modal>
+    </>
   );
 }
 
-function TeamPanel({ onInvite }: { onInvite: () => void }) {
+function getRoleBadgeClassName(role?: string | null) {
+  switch (String(role || "").toLowerCase()) {
+    case "owner":
+      return "bg-[#e8f1ff] text-[#1b66c9]";
+    case "admin":
+      return "bg-[#efe8ff] text-[#6941c6]";
+    case "developer":
+      return "bg-[#fff7d7] text-[#a35c00]";
+    default:
+      return "bg-[#fff1df] text-[#d06b12]";
+  }
+}
+
+function TeamPanel({
+  members,
+  onInvite,
+}: {
+  members: BusinessTeamMember[];
+  onInvite: () => void;
+}) {
   return (
     <Card className="min-h-[690px] border-[#eef1f5] bg-white px-8 py-9">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -706,24 +1096,27 @@ function TeamPanel({ onInvite }: { onInvite: () => void }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#eef1f5]">
-              {teamRows.map((row) => (
-                <tr key={row.email} className="bg-white">
+              {members.map((member) => {
+                const fullName = `${member.firstName || ""} ${member.lastName || ""}`.trim() || "Team Member";
+                const initials = `${member.firstName?.[0] || ""}${member.lastName?.[0] || ""}`.toUpperCase() || "TM";
+                return (
+                <tr key={member._id} className="bg-white">
                   <td className="px-6 py-5">
                     <div className="flex items-center gap-3">
                       <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#e8f6ef] text-[13px] font-semibold text-[#0a9550]">
-                        {row.initials}
+                        {initials}
                       </span>
-                      <span className="font-semibold text-[#344054]">{row.name}</span>
+                      <span className="font-semibold text-[#344054]">{fullName}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-5 text-[#667085]">{row.email}</td>
+                  <td className="px-6 py-5 text-[#667085]">{member.emailAddress}</td>
                   <td className="px-6 py-5">
-                    <span className={cn("inline-flex rounded-full px-3 py-1 text-xs font-semibold", row.roleClassName)}>
-                      {row.role}
+                    <span className={cn("inline-flex rounded-full px-3 py-1 text-xs font-semibold capitalize", getRoleBadgeClassName(member.role))}>
+                      {member.role}
                     </span>
                   </td>
                   <td className="px-6 py-5">
-                    <StatusBadge value={row.status} />
+                    <StatusBadge value={member.status || "Pending"} />
                   </td>
                   <td className="px-6 py-5 text-right text-[#98a2b3]">
                     <button type="button" className="inline-flex h-8 w-8 items-center justify-center rounded-full hover:bg-[#f3f5f8]">
@@ -731,7 +1124,7 @@ function TeamPanel({ onInvite }: { onInvite: () => void }) {
                     </button>
                   </td>
                 </tr>
-              ))}
+              )})}
             </tbody>
           </table>
         </div>
@@ -776,26 +1169,100 @@ function SettingsDrawerShell({
   );
 }
 
-function InviteMemberDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
+function InviteMemberDrawer({
+  open,
+  onClose,
+  loading,
+  onInvite,
+}: {
+  open: boolean;
+  onClose: () => void;
+  loading: boolean;
+  onInvite: (payload: {
+    firstName: string;
+    lastName: string;
+    emailAddress: string;
+    phoneNumber: string;
+    role: "admin" | "support" | "developer";
+  }) => Promise<void>;
+}) {
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [emailAddress, setEmailAddress] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [role, setRole] = useState<"admin" | "support" | "developer">("support");
+
+  useEffect(() => {
+    if (!open) {
+      setFirstName("");
+      setLastName("");
+      setEmailAddress("");
+      setPhoneNumber("");
+      setRole("support");
+    }
+  }, [open]);
+
   return (
     <SettingsDrawerShell open={open} title="Invite Member" onClose={onClose}>
       <form
         className="flex flex-1 flex-col px-8 py-8"
-        onSubmit={(event) => {
+        onSubmit={async (event) => {
           event.preventDefault();
-          onClose();
+          await onInvite({
+            firstName,
+            lastName,
+            emailAddress,
+            phoneNumber,
+            role,
+          });
         }}
       >
         <div className="grid gap-5">
-          <Input placeholder="Email" type="email" fieldClassName="border-transparent bg-[#f3f5f8]" aria-label="Email" />
+          <Input
+            placeholder="First Name"
+            value={firstName}
+            onChange={(event) => setFirstName(event.target.value)}
+            fieldClassName="border-transparent bg-[#f3f5f8]"
+            aria-label="First Name"
+          />
+          <Input
+            placeholder="Last Name"
+            value={lastName}
+            onChange={(event) => setLastName(event.target.value)}
+            fieldClassName="border-transparent bg-[#f3f5f8]"
+            aria-label="Last Name"
+          />
+          <Input
+            placeholder="Email"
+            type="email"
+            value={emailAddress}
+            onChange={(event) => setEmailAddress(event.target.value)}
+            fieldClassName="border-transparent bg-[#f3f5f8]"
+            aria-label="Email"
+          />
+          <Input
+            placeholder="Phone Number"
+            value={phoneNumber}
+            onChange={(event) => setPhoneNumber(event.target.value)}
+            fieldClassName="border-transparent bg-[#f3f5f8]"
+            aria-label="Phone Number"
+          />
           <label className="block">
-            <span className="flex h-10 items-center justify-between rounded-[10px] border border-transparent bg-[#f3f5f8] px-4 text-[14px] font-medium text-[#98a2b3]">
-              Role
-              <ChevronDown className="h-4 w-4 text-[#98a2b3]" />
+            <span className="mb-2 block text-[14px] font-semibold text-[#344054]">Role</span>
+            <span className="flex h-10 items-center rounded-[10px] border border-transparent bg-[#f3f5f8] px-4">
+              <select
+                value={role}
+                onChange={(event) => setRole(event.target.value as "admin" | "support" | "developer")}
+                className="h-full w-full bg-transparent text-[14px] font-medium text-[#344054] outline-none"
+              >
+                <option value="support">Support</option>
+                <option value="developer">Developer</option>
+                <option value="admin">Admin</option>
+              </select>
             </span>
           </label>
         </div>
-        <Button type="submit" className="dashboard-black-button mt-auto w-full">
+        <Button type="submit" loading={loading} className="dashboard-black-button mt-auto w-full">
           Invite
         </Button>
       </form>

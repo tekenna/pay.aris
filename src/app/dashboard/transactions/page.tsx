@@ -3,7 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { DetailsDrawer } from "@/components/dashboard/details-drawer";
 import { MerchantShell } from "@/components/dashboard/merchant-shell";
-import { getTransactionType, TransactionsTable } from "@/components/dashboard/transactions-table";
+import {
+  getTransactionCategory,
+  getTransactionType,
+  TransactionsTable,
+} from "@/components/dashboard/transactions-table";
 import { useBusinessSession } from "@/store/business-session-provider";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -49,6 +53,7 @@ export default function TransactionsPage() {
         ? [
             { label: "Reference", value: selected.reference },
             { label: "Status", value: selected.status },
+            { label: "Category", value: getTransactionCategory(selected) },
             { label: "Type", value: getTransactionType(selected) },
             { label: "Balance", value: formatCurrency(selected.balanceAfter, selected.currency) },
             { label: "Session ID", value: selected.providerReference || selected.reference },
@@ -67,9 +72,12 @@ export default function TransactionsPage() {
     <MerchantShell title="Transactions">
       <Card className="overflow-hidden p-7">
         <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
-          <p className="text-[15px] font-medium text-[#667085]">
-            Showing {data.length || 0}
-          </p>
+          <div>
+            <p className="text-[18px] font-bold text-slate-950">All Transactions</p>
+            <p className="mt-2 text-sm text-[#667085]">
+              A unified ledger of every payment, fee, settlement, and checkout activity.
+            </p>
+          </div>
           <div className="flex flex-wrap items-center gap-5">
             <label className="flex items-center gap-3 text-[15px] font-medium text-[#98a2b3]">
               Sort by:

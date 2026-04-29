@@ -8,6 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Pagination } from "@/components/ui/pagination";
 import { StatusBadge } from "@/components/ui/status-badge";
+import {
+  getTransactionCategory,
+  TransactionsTable,
+} from "@/components/dashboard/transactions-table";
 import { merchantApi } from "@/lib/merchant-api";
 import type { BusinessTransaction } from "@/lib/types";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -49,6 +53,7 @@ export default function CheckoutTransactionsPage() {
         ? [
             { label: "Reference", value: selected.reference },
             { label: "Status", value: selected.status },
+            { label: "Category", value: getTransactionCategory(selected) },
             { label: "Source", value: "API Checkout" },
             { label: "Session ID", value: selected.providerReference || selected.reference },
             { label: "Transaction Method", value: selected.paymentMethod || selected.channel || "Transfer" },
@@ -67,9 +72,9 @@ export default function CheckoutTransactionsPage() {
       <Card className="overflow-hidden p-7">
         <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p className="text-[18px] font-bold text-slate-950">Checkout Transactions</p>
+            <p className="text-[18px] font-bold text-slate-950">API Checkout Transactions</p>
             <p className="mt-2 text-sm text-[#667085]">
-              Transactions received through the developer checkout API.
+              Transactions created when merchants integrate using their API keys.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-5">
@@ -96,43 +101,11 @@ export default function CheckoutTransactionsPage() {
             </Button>
           </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-left text-sm">
-            <thead className="bg-[#f7f9fb] text-[11px] uppercase tracking-[0.12em] text-[#667085]">
-              <tr>
-                <th className="px-4 py-4">Date</th>
-                <th className="px-4 py-4">Transaction ID</th>
-                <th className="px-4 py-4">Status</th>
-                <th className="px-4 py-4 text-right">Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.map((item) => (
-                <tr
-                  key={item._id}
-                  className="cursor-pointer text-[15px] font-medium text-[#667085] hover:bg-slate-50"
-                  onClick={() => setSelected(item)}
-                >
-                  <td className="px-4 py-7">{formatDate(item.createdAt)}</td>
-                  <td className="px-4 py-7">{item.reference}</td>
-                  <td className="px-4 py-7">
-                    <StatusBadge value={item.status} />
-                  </td>
-                  <td className="px-4 py-7 text-right font-bold text-[#344054]">
-                    {formatCurrency(item.amount, item.currency)}
-                  </td>
-                </tr>
-              ))}
-              {!data.length ? (
-                <tr>
-                  <td colSpan={4} className="px-6 py-14 text-center text-sm text-slate-400">
-                    No checkout transactions yet.
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
-        </div>
+        <TransactionsTable
+          transactions={data}
+          emptyMessage="No API checkout transactions yet."
+          onRowClick={setSelected}
+        />
         <Pagination
           page={page}
           limit={limit}

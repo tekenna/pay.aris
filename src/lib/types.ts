@@ -15,6 +15,17 @@ export type Business = {
   businessName?: string | null;
   legalName?: string | null;
   emailAddress: string;
+  hasPaymentPin?: boolean;
+  currentRole?: "owner" | "admin" | "support" | "developer";
+  currentUser?: {
+    _id?: string;
+    firstName?: string | null;
+    lastName?: string | null;
+    emailAddress?: string | null;
+    phoneNumber?: string | null;
+    role?: "owner" | "admin" | "support" | "developer";
+    type?: "owner" | "team_member";
+  };
   phoneNumber?: string | null;
   contactFirstName?: string | null;
   contactLastName?: string | null;
@@ -83,6 +94,21 @@ export type Business = {
     status?: string | null;
     meta?: Record<string, unknown> | null;
   };
+  teamMembers?: BusinessTeamMember[];
+};
+
+export type BusinessTeamMember = {
+  _id: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  emailAddress: string;
+  phoneNumber?: string | null;
+  role: "owner" | "admin" | "support" | "developer";
+  status?: string | null;
+  emailVerified?: boolean;
+  invitedAt?: string | null;
+  invitationAcceptedAt?: string | null;
+  lastLoginAt?: string | null;
 };
 
 export type ApiKeyEnvironment = {
@@ -146,6 +172,7 @@ export type MerchantDashboardOverview = {
 
 export type BusinessTransaction = {
   _id: string;
+  checkoutSession?: string | null;
   reference: string;
   providerReference?: string | null;
   status: string;
@@ -169,6 +196,62 @@ export type BusinessTransaction = {
     accountName?: string | null;
     bankName?: string | null;
   };
+};
+
+export type BusinessSettlementAccount = {
+  id: "primary" | "checkout";
+  bankName: string;
+  bankCode?: string | null;
+  accountNumber: string;
+  accountName: string;
+  balance: number;
+  currency: string;
+  status: string;
+};
+
+export type MerchantBank = {
+  id?: string;
+  name: string;
+  bankCode: string;
+  cbnCode?: string | null;
+  logoUrl?: string | null;
+  categoryId?: string | null;
+};
+
+export type BusinessAccountLedgerEntry = {
+  id: string;
+  reference: string;
+  status: string;
+  type: "credit" | "debit";
+  category: string;
+  amount: number;
+  fee?: number;
+  counterpartyName?: string | null;
+  counterpartyAccountNumber?: string | null;
+  counterpartyBankName?: string | null;
+  narration?: string | null;
+  createdAt?: string | null;
+  paidAt?: string | null;
+};
+
+export type RecentBusinessTransfer = {
+  id: string;
+  reference: string;
+  name: string;
+  accountNumber?: string | null;
+  bankName?: string | null;
+  bankCode?: string | null;
+  amount?: number;
+  createdAt?: string | null;
+};
+
+export type ValidatedTransferAccount = {
+  accountName?: string | null;
+  accountNumber?: string | null;
+  bankCode?: string | null;
+  bankName?: string | null;
+  sessionId?: string | null;
+  nameEnquiryReference?: string | null;
 };
 
 export type CheckoutSession = {

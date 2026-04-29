@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Pagination } from "@/components/ui/pagination";
+import { QrCode } from "@/components/ui/qr-code";
 import { StatusBadge } from "@/components/ui/status-badge";
 import {
   ChevronLeft,
@@ -16,11 +17,12 @@ import {
   SearchIcon,
 } from "@/components/ui/icons";
 import { merchantApi } from "@/lib/merchant-api";
-import type { CheckoutSession } from "@/lib/types";
+import type { BusinessTransaction, CheckoutSession } from "@/lib/types";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
 
 type PaymentTab = "links" | "qr";
 type DrawerMode = "create" | "edit";
+type PaymentDetailsTab = "details" | "transactions";
 
 type PaymentForm = {
   paymentType: "one_time" | "multiple";
@@ -75,6 +77,7 @@ function getPaymentType(session: CheckoutSession) {
 function getPaymentStatusLabel(session: CheckoutSession) {
   if (session.status === "inactive") return "Inactive";
   if (session.status === "active") return "Active";
+  if (session.status === "success") return "Paid";
   return session.status || "unknown";
 }
 
@@ -139,6 +142,12 @@ export default function PaymentPage() {
   const [tab, setTab] = useState<PaymentTab>("links");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedPayment, setSelectedPayment] = useState<CheckoutSession | null>(null);
+  const [detailsTab, setDetailsTab] = useState<PaymentDetailsTab>("details");
+  const [paymentTransactions, setPaymentTransactions] = useState<BusinessTransaction[]>([]);
+  const [loadingTransactions, setLoadingTransactions] = useState(false);
+  const [transactionPage, setTransactionPage] = useState(1);
+  const [transactionLimit, setTransactionLimit] = useState(10);
+  const [transactionPages, setTransactionPages] = useState(1);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerMode, setDrawerMode] = useState<DrawerMode>("create");
   const [isSaving, setIsSaving] = useState(false);
@@ -186,15 +195,57 @@ export default function PaymentPage() {
             { label: "Reference", value: selectedPayment.reference },
             { label: "Payment Type", value: paymentTypeLabel[getPaymentType(selectedPayment)] },
             { label: "Amount", value: selectedPayment.amount ? formatCurrency(selectedPayment.amount, selectedPayment.currency) : "Customer enters amount" },
-            { label: "Virtual Account", value: selectedPayment.virtualAccount?.accountNumber || "--" },
-            { label: "Virtual Account Expiry", value: formatDateTime(selectedPayment.virtualAccount?.expiresAt) },
+            { label: "Checkout URL", value: getPaymentUrl(selectedPayment) },
             { label: "Link Expiry", value: formatDateTime(selectedPayment.linkExpiresAt) },
             { label: "Activated At", value: formatDateTime(selectedPayment.activatedAt) },
             { label: "Paid At", value: formatDateTime(selectedPayment.paidAt) },
+            { label: "Created At", value: formatDateTime(selectedPayment.createdAt) },
+            ...(selectedPayment.paymentType === "multiple"
+              ? []
+              : [
+                  { label: "Virtual Account", value: selectedPayment.virtualAccount?.accountNumber || "--" },
+                  { label: "Account Name", value: selectedPayment.virtualAccount?.accountName || "--" },
+                  { label: "Bank Name", value: selectedPayment.virtualAccount?.bankName || "--" },
+                  { label: "Virtual Account Expiry", value: formatDateTime(selectedPayment.virtualAccount?.expiresAt) },
+                ]),
           ]
         : [],
     [selectedPayment],
   );
+
+  useEffect(() => {
+    async function loadPaymentTransactions() {
+      if (!session?.token || !selectedPayment?._id || selectedPayment.paymentType !== "multiple") {
+        setPaymentTransactions([]);
+        setTransactionPages(1);
+        return;
+      }
+
+      setLoadingTransactions(true);
+      try {
+        const params = new URLSearchParams({
+          checkoutSessionId: selectedPayment._id,
+          page: String(transactionPage),
+          limit: String(transactionLimit),
+        });
+        const response = await merchantApi.getTransactions(session.token, params);
+        if (response.statusCode === 200) {
+          setPaymentTransactions(response.data);
+          setTransactionPages(response.pagination?.pages || 1);
+        }
+      } finally {
+        setLoadingTransactions(false);
+      }
+    }
+
+    void loadPaymentTransactions();
+  }, [
+    selectedPayment?._id,
+    selectedPayment?.paymentType,
+    session?.token,
+    transactionLimit,
+    transactionPage,
+  ]);
 
   function openCreateDrawer() {
     setDrawerMode("create");
@@ -268,11 +319,17 @@ export default function PaymentPage() {
   }
 
   if (selectedPayment) {
+    const isMultiplePayment = selectedPayment.paymentType === "multiple";
+
     return (
       <MerchantShell title="">
         <button
           type="button"
-          onClick={() => setSelectedPayment(null)}
+          onClick={() => {
+            setSelectedPayment(null);
+            setDetailsTab("details");
+            setTransactionPage(1);
+          }}
           className="-mt-6 mb-10 inline-flex items-center gap-2 text-sm font-bold text-[#344054]"
         >
           <ChevronLeft className="h-4 w-4" />
@@ -301,24 +358,168 @@ export default function PaymentPage() {
         </Card>
 
         <Card className="p-7">
-          <div className="mb-6 flex flex-wrap gap-2">
-            <StatusBadge value={getPaymentStatusLabel(selectedPayment)} />
-            {selectedPayment.virtualAccount?.accountNumber ? (
-              <StatusBadge value="QR Ready" />
-            ) : null}
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            {paymentDetails.map((item) => (
-              <div key={item.label} className="rounded-[12px] bg-[#f8fafc] p-4">
-                <p className="text-xs font-bold uppercase tracking-[0.08em] text-[#98a2b3]">
+          {isMultiplePayment ? (
+            <div className="mb-8 flex items-center gap-2 rounded-[12px] bg-[#f8fafc] p-2">
+              {[
+                { label: "Details", value: "details" as const },
+                { label: "Transactions", value: "transactions" as const },
+              ].map((item) => (
+                <button
+                  key={item.value}
+                  type="button"
+                  onClick={() => {
+                    setDetailsTab(item.value);
+                    if (item.value === "transactions") {
+                      setTransactionPage(1);
+                    }
+                  }}
+                  className={`h-10 rounded-[10px] px-4 text-sm font-bold transition ${
+                    detailsTab === item.value
+                      ? "bg-white text-[#111827] shadow-[0_8px_18px_rgba(15,23,42,0.08)]"
+                      : "text-[#667085]"
+                  }`}
+                >
                   {item.label}
-                </p>
-                <p className="mt-2 text-sm font-semibold text-[#202939] break-words">
-                  {item.value || "--"}
-                </p>
+                </button>
+              ))}
+            </div>
+          ) : null}
+
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.65fr)_280px]">
+            <div className="min-w-0">
+              <div className="mb-6 flex flex-wrap gap-2">
+                <StatusBadge value={getPaymentStatusLabel(selectedPayment)} />
+                {selectedPayment.virtualAccount?.accountNumber ? (
+                  <StatusBadge value="QR Ready" />
+                ) : null}
               </div>
-            ))}
+
+              <div className="mb-7 grid gap-4 sm:grid-cols-3">
+                <div className="rounded-[16px] bg-[#0f172a] p-5 text-white">
+                  <p className="text-xs font-bold uppercase tracking-[0.08em] text-white/60">
+                    Amount
+                  </p>
+                  <p className="mt-3 text-[26px] font-bold leading-none">
+                    {selectedPayment.amount
+                      ? formatCurrency(selectedPayment.amount, selectedPayment.currency)
+                      : "Variable"}
+                  </p>
+                </div>
+                <div className="rounded-[16px] bg-[#f8fafc] p-5">
+                  <p className="text-xs font-bold uppercase tracking-[0.08em] text-[#98a2b3]">
+                    Payment Status
+                  </p>
+                  <div className="mt-3">
+                    <StatusBadge value={getPaymentStatusLabel(selectedPayment)} />
+                  </div>
+                </div>
+                <div className="rounded-[16px] bg-[#f8fafc] p-5">
+                  <p className="text-xs font-bold uppercase tracking-[0.08em] text-[#98a2b3]">
+                    Payment Date
+                  </p>
+                  <p className="mt-3 text-sm font-semibold text-[#202939]">
+                    {formatDateTime(selectedPayment.paidAt || selectedPayment.createdAt)}
+                  </p>
+                </div>
+              </div>
+
+              {detailsTab === "details" || !isMultiplePayment ? (
+                <div className="grid gap-4 md:grid-cols-2">
+                  {paymentDetails.map((item) => (
+                    <div key={item.label} className="rounded-[12px] bg-[#f8fafc] p-4">
+                      <p className="text-xs font-bold uppercase tracking-[0.08em] text-[#98a2b3]">
+                        {item.label}
+                      </p>
+                      <p className="mt-2 text-sm font-semibold text-[#202939] break-words">
+                        {item.value || "--"}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+
+              {detailsTab === "transactions" && isMultiplePayment ? (
+                <div className="overflow-hidden rounded-[18px] border border-[#e4e7ec]">
+                  <div className="border-b border-[#e4e7ec] bg-[#f8fafc] px-5 py-4">
+                    <p className="text-sm font-bold text-[#111827]">
+                      Transactions
+                    </p>
+                    <p className="mt-1 text-sm text-[#667085]">
+                      Every successful payment attempt created from this reusable payment link.
+                    </p>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full text-left text-sm">
+                      <thead className="bg-white text-[11px] uppercase tracking-[0.12em] text-[#98a2b3]">
+                        <tr>
+                          <th className="px-5 py-4">Date</th>
+                          <th className="px-5 py-4">Reference</th>
+                          <th className="px-5 py-4">Status</th>
+                          <th className="px-5 py-4 text-right">Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {paymentTransactions.map((item) => (
+                          <tr key={item._id} className="border-t border-[#f2f4f7] text-[#475467]">
+                            <td className="px-5 py-4">{formatDateTime(item.paidAt || item.createdAt)}</td>
+                            <td className="px-5 py-4 font-medium text-[#111827]">{item.reference}</td>
+                            <td className="px-5 py-4">
+                              <StatusBadge value={item.status} />
+                            </td>
+                            <td className="px-5 py-4 text-right font-semibold text-[#111827]">
+                              {formatCurrency(item.amount, item.currency)}
+                            </td>
+                          </tr>
+                        ))}
+                        {!paymentTransactions.length && !loadingTransactions ? (
+                          <tr>
+                            <td colSpan={4} className="px-5 py-12 text-center text-sm text-[#98a2b3]">
+                              No transactions recorded for this payment link yet.
+                            </td>
+                          </tr>
+                        ) : null}
+                        {loadingTransactions ? (
+                          <tr>
+                            <td colSpan={4} className="px-5 py-12 text-center text-sm text-[#98a2b3]">
+                              Loading transactions...
+                            </td>
+                          </tr>
+                        ) : null}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="border-t border-[#e4e7ec] bg-white px-5 py-4">
+                    <Pagination
+                      page={transactionPage}
+                      limit={transactionLimit}
+                      totalPages={transactionPages}
+                      onPageChange={setTransactionPage}
+                      onLimitChange={(nextLimit) => {
+                        setTransactionLimit(nextLimit);
+                        setTransactionPage(1);
+                      }}
+                    />
+                  </div>
+                </div>
+              ) : null}
+            </div>
+
+            <aside className="rounded-[20px] border border-[#e4e7ec] bg-[#f8fafc] p-5 xl:sticky xl:top-6 xl:self-start">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.08em] text-[#98a2b3]">
+                    Payment QR
+                  </p>
+                  <p className="mt-2 text-sm font-medium text-[#667085]">
+                    Customers can scan this code to open the payment link directly.
+                  </p>
+                </div>
+                <StatusBadge value={selectedPayment.virtualAccount?.accountNumber ? "Live" : "Ready"} />
+              </div>
+              <div className="mt-6 flex justify-center">
+                <QrCode value={getPaymentUrl(selectedPayment)} size={220} />
+              </div>
+            </aside>
           </div>
         </Card>
 
@@ -379,6 +580,7 @@ export default function PaymentPage() {
           <thead className="bg-[#f7f9fb] text-[11px] uppercase tracking-[0.12em] text-[#667085]">
             <tr>
               <th className="px-4 py-4">Name</th>
+              {tab === "qr" ? <th className="px-4 py-4">QR</th> : null}
               <th className="px-4 py-4">Link</th>
               <th className="px-4 py-4">Payment Type</th>
               <th className="px-4 py-4">Status</th>
@@ -401,6 +603,11 @@ export default function PaymentPage() {
                     </div>
                   </div>
                 </td>
+                {tab === "qr" ? (
+                  <td className="px-4 py-5">
+                    <QrCode value={getPaymentUrl(item)} size={96} />
+                  </td>
+                ) : null}
                 <td className="px-4 py-5 max-w-[280px]">
                   <p className="truncate" title={getPaymentUrl(item)}>{getPaymentUrl(item)}</p>
                 </td>
@@ -415,7 +622,7 @@ export default function PaymentPage() {
             ))}
             {!filteredData.length ? (
               <tr>
-                <td colSpan={5} className="px-6 py-14 text-center text-sm text-slate-400">
+                <td colSpan={tab === "qr" ? 6 : 5} className="px-6 py-14 text-center text-sm text-slate-400">
                   No payment links found.
                 </td>
               </tr>

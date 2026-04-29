@@ -34,6 +34,9 @@ const navItems = [
   { href: "/dashboard/settings", label: "Settings", icon: SettingsIcon },
 ];
 
+const OWNER_ADMIN_ROLES = new Set(["owner", "admin"]);
+const DEVELOPER_VISIBLE_ROLES = new Set(["owner", "admin", "developer"]);
+
 export function MerchantShell({
   title,
   actions,
@@ -87,9 +90,25 @@ export function MerchantShell({
   }
 
   const kycStatus = session.business.kyc?.status || "not_submitted";
+  const currentRole = session.business.currentRole || "owner";
   const isSettingsPage = pathname === "/dashboard/settings";
   const shouldBlockForCompliance =
     !["pending", "approved"].includes(kycStatus) && !isSettingsPage;
+  const visibleNavItems = navItems.filter((item) => {
+    if (
+      ["/dashboard/accounts", "/dashboard/payment", "/dashboard/checkout", "/dashboard/transactions"].includes(
+        item.href,
+      )
+    ) {
+      return OWNER_ADMIN_ROLES.has(currentRole);
+    }
+
+    if (item.href === "/dashboard/developers") {
+      return DEVELOPER_VISIBLE_ROLES.has(currentRole);
+    }
+
+    return true;
+  });
 
   return (
     <div className="h-screen bg-[var(--background)] overflow-hidden text-slate-900 lg:grid lg:grid-cols-[260px_minmax(0,1fr)]">
@@ -104,7 +123,7 @@ export function MerchantShell({
         </div>
 
         <nav className="grid pt-8">
-          {navItems.map((item) => {
+          {visibleNavItems.map((item) => {
             const Icon = item.icon;
             const active =
               item.href === "/dashboard"
