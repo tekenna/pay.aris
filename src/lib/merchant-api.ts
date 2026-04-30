@@ -18,7 +18,7 @@ import type {
 } from "@/lib/types";
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.ariswallex.com";
+  process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.ariswallex.com/api";
 const SESSION_KEY = "aris-pay.business.session";
 const REGISTRATION_KEY = "aris-pay.business.registration";
 
