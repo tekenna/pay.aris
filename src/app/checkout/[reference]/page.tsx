@@ -1,8 +1,11 @@
 "use client";
 
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { Wordmark } from "@/components/brand/wordmark";
+import { TransactionReceipt } from "@/components/checkout/transaction-receipt";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -63,11 +66,13 @@ function formatCountdown(totalSeconds: number) {
 export default function CheckoutPage() {
   const params = useParams<{ reference: string }>();
   const reference = params.reference;
+  const receiptRef = useRef<HTMLDivElement | null>(null);
   const [session, setSession] = useState<CheckoutSession | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [customerAmount, setCustomerAmount] = useState("");
   const [isInitializing, setIsInitializing] = useState(true);
   const [isConfirming, setIsConfirming] = useState(false);
+  const [isDownloadingReceipt, setIsDownloadingReceipt] = useState(false);
   const [attemptReference, setAttemptReference] = useState<string | null>(null);
   const [pageState, setPageState] = useState<"ready" | "not_found" | "bad_gateway">("ready");
   const [remainingSeconds, setRemainingSeconds] = useState(0);
@@ -237,6 +242,55 @@ export default function CheckoutPage() {
     !session?.virtualAccount?.accountNumber &&
     !session?.amount;
   const messageTone = isSuccess ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-600";
+  const receiptAmount = Number(session?.amount || session?.virtualAccount?.amount || 0);
+  const receiptSessionId = session?.virtualAccount?.providerReference || attemptReference || session?.reference || reference;
+  const receiptRecipientName =
+    session?.businessName ||
+    session?.virtualAccount?.accountName ||
+    "Aris Pay Merchant";
+  const receiptBankName = session?.virtualAccount?.bankName || "SafeHaven MFB";
+  const receiptAccountNumber = session?.virtualAccount?.accountNumber || "--";
+  const receiptSourceBankName = "SafeHaven MFB";
+  const receiptSourceAccountName =
+    session?.customer?.name ||
+    session?.customer?.email ||
+    "Guest customer";
+  const receiptNarration = session?.description || session?.reference || "--";
+
+  async function handleDownloadReceipt() {
+    if (!receiptRef.current || !isSuccess) {
+      return;
+    }
+
+    setIsDownloadingReceipt(true);
+
+    try {
+      if (typeof document !== "undefined" && "fonts" in document) {
+        await (document.fonts as FontFaceSet).ready;
+      }
+
+      const canvas = await html2canvas(receiptRef.current, {
+        backgroundColor: "#ffffff",
+        scale: 2,
+        useCORS: true,
+      });
+
+      const imageData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "px",
+        format: [canvas.width / 2, canvas.height / 2],
+        compress: true,
+      });
+
+      pdf.addImage(imageData, "PNG", 0, 0, canvas.width / 2, canvas.height / 2);
+      pdf.save(`${reference}-receipt.pdf`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to download receipt.");
+    } finally {
+      setIsDownloadingReceipt(false);
+    }
+  }
 
   if (pageState === "not_found") {
     return (
@@ -348,12 +402,39 @@ export default function CheckoutPage() {
                 I&apos;ve made payment
               </Button>
             ) : null}
-            <Button variant="secondary" className="w-full" disabled={!isSuccess}>
+            <Button
+              variant="secondary"
+              className="w-full"
+              disabled={!isSuccess}
+              loading={isDownloadingReceipt}
+              onClick={handleDownloadReceipt}
+            >
               Download receipt
             </Button>
           </div>
         </div>
       </Card>
+      {isSuccess ? (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none fixed left-[-200vw] top-0 opacity-0"
+        >
+          <div ref={receiptRef}>
+            <TransactionReceipt
+              amount={receiptAmount}
+              paidAt={session?.paidAt}
+              status={session?.status}
+              sessionId={receiptSessionId}
+              recipientName={receiptRecipientName}
+              bankName={receiptBankName}
+              accountNumber={receiptAccountNumber}
+              sourceBankName={receiptSourceBankName}
+              sourceAccountName={receiptSourceAccountName}
+              narration={receiptNarration}
+            />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

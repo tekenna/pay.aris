@@ -28,9 +28,8 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       { url: "/images/auth-vector.svg", type: "image/svg+xml" },
-      { url: "/favicon.ico" },
     ],
-    shortcut: ["/favicon.ico"],
+    shortcut: ["/images/auth-vector.svg"],
     apple: ["/images/auth-vector.svg"],
   },
   manifest: "/manifest.webmanifest",

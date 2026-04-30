@@ -18,7 +18,7 @@ import type {
 } from "@/lib/types";
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "https://aris-api-ftgj.onrender.com/api";
+  process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.ariswallex.com";
 const SESSION_KEY = "aris-pay.business.session";
 
 function handleRestrictedAccess(payload: { statusCode?: number; message?: string } | null) {

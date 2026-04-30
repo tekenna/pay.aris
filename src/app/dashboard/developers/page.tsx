@@ -343,7 +343,7 @@ export default function DevelopersPage() {
         <div className="grid gap-6">
           <section className="rounded-[18px] bg-slate-50 p-5">
             <p className="text-sm font-semibold uppercase tracking-[0.08em] text-slate-500">Create One-Time Checkout</p>
-            <pre className="mt-4 overflow-x-auto rounded-[16px] bg-slate-950 p-5 text-sm text-slate-100"><code>{`curl -X POST "${process.env.NEXT_PUBLIC_API_BASE_URL || "https://aris-api-ftgj.onrender.com/api"}/checkout/create" \\
+            <pre className="mt-4 overflow-x-auto rounded-[16px] bg-slate-950 p-5 text-sm text-slate-100"><code>{`curl -X POST "${process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.ariswallex.com"}/checkout/create" \\
   -H "Content-Type: application/json" \\
   -H "x-client: YOUR_SECRET_KEY" \\
   -d '{
@@ -367,7 +367,7 @@ export default function DevelopersPage() {
           <section className="grid gap-6 lg:grid-cols-2">
             <div className="rounded-[18px] bg-slate-50 p-5">
               <p className="text-sm font-semibold uppercase tracking-[0.08em] text-slate-500">Node.js Example</p>
-              <pre className="mt-4 overflow-x-auto rounded-[16px] bg-slate-950 p-5 text-sm text-slate-100"><code>{`const response = await fetch("${process.env.NEXT_PUBLIC_API_BASE_URL || "https://aris-api-ftgj.onrender.com/api"}/checkout/create", {
+              <pre className="mt-4 overflow-x-auto rounded-[16px] bg-slate-950 p-5 text-sm text-slate-100"><code>{`const response = await fetch("${process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.ariswallex.com"}/checkout/create", {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
@@ -389,7 +389,7 @@ console.log(payload.data.checkout_url);`}</code></pre>
 
             <div className="rounded-[18px] bg-slate-50 p-5">
               <p className="text-sm font-semibold uppercase tracking-[0.08em] text-slate-500">Verify Payment</p>
-              <pre className="mt-4 overflow-x-auto rounded-[16px] bg-slate-950 p-5 text-sm text-slate-100"><code>{`curl "${process.env.NEXT_PUBLIC_API_BASE_URL || "https://aris-api-ftgj.onrender.com/api"}/payments/verify/ARIS_CHK_REFERENCE"`}</code></pre>
+              <pre className="mt-4 overflow-x-auto rounded-[16px] bg-slate-950 p-5 text-sm text-slate-100"><code>{`curl "${process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.ariswallex.com"}/payments/verify/ARIS_CHK_REFERENCE"`}</code></pre>
               <p className="mt-4 text-sm leading-7 text-slate-600">
                 The verification response includes the payment status, amount, currency, paid time,
                 callback information, and the virtual account details used for collection.
