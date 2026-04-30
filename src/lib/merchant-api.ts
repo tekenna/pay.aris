@@ -20,14 +20,19 @@ import type {
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.ariswallex.com";
 const SESSION_KEY = "aris-pay.business.session";
+const REGISTRATION_KEY = "aris-pay.business.registration";
 
-function handleRestrictedAccess(payload: { statusCode?: number; message?: string } | null) {
+function handleRestrictedAccess(
+  response: Response,
+  payload: { statusCode?: number; message?: string } | null,
+) {
   if (typeof window === "undefined") return;
-  if (!payload || payload.statusCode !== 403 || payload.message !== "Access Restricted!") {
+  if (response.status !== 403 && payload?.statusCode !== 403) {
     return;
   }
 
   window.localStorage.removeItem(SESSION_KEY);
+  window.sessionStorage.removeItem(REGISTRATION_KEY);
   window.location.replace("/login");
 }
 
@@ -61,11 +66,11 @@ async function request<T>(
 
   const payload = (await response.json().catch(() => null)) as ApiResponse<T> | null;
 
+  handleRestrictedAccess(response, payload);
+
   if (!payload) {
     throw new Error("Unexpected API response.");
   }
-
-  handleRestrictedAccess(payload);
 
   return payload;
 }
