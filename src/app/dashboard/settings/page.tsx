@@ -40,8 +40,11 @@ export default function SettingsPage() {
   const [isSavingCheckout, setIsSavingCheckout] = useState(false);
 
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).get("tab") === "compliance") {
-      setTab("compliance");
+    const params = new URLSearchParams(window.location.search);
+    const requestedTab = params.get("tab");
+
+    if (requestedTab === "compliance" || requestedTab === "security") {
+      setTab(requestedTab);
     }
 
     function openCompliance() {
@@ -310,6 +313,11 @@ function DetailsRow({ label, value }: { label: string; value: string }) {
   );
 }
 
+function formatNairaLimit(value?: number | null) {
+  const amount = Number(value ?? 0);
+  return `NGN ${amount.toLocaleString("en-NG")}`;
+}
+
 function CompliancePanel({
   profile,
   token,
@@ -319,17 +327,20 @@ function CompliancePanel({
   token?: string;
   onApproved: (business: Business) => void;
 }) {
-  const kycStatus = profile?.kyc?.status || "not_submitted";
-  const businessStatus = String(profile?.status || "pending").toLowerCase();
-  const isBusinessActive = businessStatus === "active";
+  const businessTierLevel = Number(profile?.businessTierLevel || 1);
   const [identityType, setIdentityType] = useState(profile?.kyc?.identityType || "BVN");
   const [identityNumber, setIdentityNumber] = useState(profile?.kyc?.identityNumber || "");
   const [identityId, setIdentityId] = useState(profile?.kyc?.identityId || "");
   const [otp, setOtp] = useState("");
-  const [identityVerified, setIdentityVerified] = useState(Boolean(profile?.kyc?.identityId));
   const [cacFile, setCacFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loadingStep, setLoadingStep] = useState<"identity" | "otp" | "save" | null>(null);
+
+  useEffect(() => {
+    setIdentityType(profile?.kyc?.identityType || "BVN");
+    setIdentityNumber(profile?.kyc?.identityNumber || "");
+    setIdentityId(profile?.kyc?.identityId || "");
+  }, [profile?.businessTierLevel, profile?.kyc?.identityId, profile?.kyc?.identityNumber, profile?.kyc?.identityType]);
 
   useEffect(() => {
     if (!cacFile || !cacFile.type.startsWith("image/")) {
@@ -342,64 +353,115 @@ function CompliancePanel({
     return () => URL.revokeObjectURL(url);
   }, [cacFile]);
 
-  if (kycStatus === "pending") {
-    return (
-      <Card className="min-h-[520px] border-[#eef1f5] bg-white p-8">
-        <div className="flex max-w-[560px] flex-col items-start">
-          <span className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-[#fff7e6] text-[#d98a00]">
-            <ScanIcon className="h-7 w-7" />
-          </span>
-          <h2 className="mt-6 text-[22px] font-bold text-[#101828]">Compliance review pending</h2>
-          <p className="mt-3 text-[14px] leading-7 text-[#667085]">
-            Your business compliance details have been submitted and are awaiting admin approval.
-            Your business will remain pending until an admin completes the review and activates it.
-          </p>
-          <div className="mt-7 rounded-full bg-[#fff7e6] px-4 py-2 text-[13px] font-semibold text-[#c26a00]">
-            Pending approval
-          </div>
-        </div>
-      </Card>
-    );
-  }
-
-  if (kycStatus === "approved" && !isBusinessActive) {
-    return (
-      <Card className="min-h-[520px] border-[#eef1f5] bg-white p-8">
-        <div className="max-w-[680px]">
-          <span className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-[#fff7e6] text-[#d98a00]">
-            <ScanIcon className="h-7 w-7" />
-          </span>
-          <h2 className="mt-6 text-[22px] font-bold text-[#101828]">Compliance approved, activation pending</h2>
-          <p className="mt-3 text-[14px] leading-7 text-[#667085]">
-            Your compliance review has been completed, but your business is not active yet.
-            An admin still needs to activate the business before the dashboard becomes fully active.
-          </p>
-          <div className="mt-8 divide-y divide-[#eef1f5] rounded-[12px] border border-[#eef1f5]">
-            <DetailsRow label="Business Status" value={profile?.status || "Pending"} />
-            <DetailsRow label="Compliance Status" value={profile?.kyc?.status || "approved"} />
-            <DetailsRow label="Main Account Number" value={profile?.safehaven?.accountNumber || "--"} />
-          </div>
-        </div>
-      </Card>
-    );
-  }
-
-  if (kycStatus === "approved" && isBusinessActive) {
+  if (businessTierLevel >= 3) {
     return (
       <Card className="min-h-[520px] border-[#eef1f5] bg-white p-8">
         <div className="max-w-[680px]">
           <span className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-[#e8f6ef] text-[#0a9550]">
             <UserSquareIcon className="h-7 w-7" />
           </span>
-          <h2 className="mt-6 text-[22px] font-bold text-[#101828]">Compliance approved</h2>
+          <h2 className="mt-6 text-[22px] font-bold text-[#101828]">Tier 3 active</h2>
           <p className="mt-3 text-[14px] leading-7 text-[#667085]">
-            Your business is verified, active, and your default Safehaven settlement account has been created.
+            Your BVN and CAC details are complete, your business is on Tier 3, and you can process up to{" "}
+            {formatNairaLimit(profile?.tierLimits?.perTransactionLimit ?? 5000000)} per transaction.
           </p>
           <div className="mt-8 divide-y divide-[#eef1f5] rounded-[12px] border border-[#eef1f5]">
+            <DetailsRow label="Tier" value="Tier 3" />
+            <DetailsRow label="Account Name" value={profile?.safehaven?.accountName || "--"} />
+            <DetailsRow label="Account Number" value={profile?.safehaven?.accountNumber || "--"} />
+            <DetailsRow label="Checkout Account" value={profile?.safehavenCheckout?.accountNumber || "--"} />
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
+  if (businessTierLevel >= 2) {
+    return (
+      <Card className="min-h-[690px] border-[#eef1f5] bg-white p-8">
+        <div className="max-w-[680px]">
+          <span className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-[#e8f6ef] text-[#0a9550]">
+            <UserSquareIcon className="h-7 w-7" />
+          </span>
+          <h2 className="mt-6 text-[22px] font-bold text-[#101828]">Tier 2 active</h2>
+          <p className="mt-3 text-[14px] leading-7 text-[#667085]">
+            Your BVN has been verified and your business has been upgraded to Tier 2. You can now process up to{" "}
+            {formatNairaLimit(profile?.tierLimits?.perTransactionLimit ?? 10000)} per transaction. Upload your CAC
+            document to move to Tier 3 and unlock up to NGN 5,000,000 per transaction.
+          </p>
+          <div className="mt-8 divide-y divide-[#eef1f5] rounded-[12px] border border-[#eef1f5]">
+            <DetailsRow label="Tier" value="Tier 2" />
             <DetailsRow label="Account Name" value={profile?.safehaven?.accountName || "--"} />
             <DetailsRow label="Account Number" value={profile?.safehaven?.accountNumber || "--"} />
             <DetailsRow label="Bank" value={profile?.safehaven?.bankName || "Safehaven MFB"} />
           </div>
+
+          <form
+            className="mt-8 grid gap-6"
+            onSubmit={async (event) => {
+              event.preventDefault();
+              if (!token || !cacFile || !identityId) {
+                toast.error("Upload your CAC document to continue.");
+                return;
+              }
+
+              setLoadingStep("save");
+              try {
+                const response = await merchantApi.submitCorporateKyc(token, {
+                  identityType,
+                  identityNumber,
+                  identityId,
+                  cac: cacFile,
+                });
+
+                if (response.statusCode !== 200) {
+                  toast.error(response.message || "Unable to upload CAC document.");
+                  return;
+                }
+
+                onApproved(response.data);
+                setCacFile(null);
+                toast.success(response.message || "Tier 3 unlocked successfully.");
+              } catch (error) {
+                toast.error(error instanceof Error ? error.message : "Unable to upload CAC document.");
+              } finally {
+                setLoadingStep(null);
+              }
+            }}
+          >
+            <div className="rounded-[12px] border border-dashed border-[#b7dfc9] bg-[#f8fffb] p-5">
+              <p className="text-[14px] font-semibold text-[#101828]">Upload CAC document for Tier 3</p>
+              <label className="mt-4 flex min-h-[132px] cursor-pointer flex-col items-center justify-center rounded-[10px] bg-white px-4 text-center">
+                <input
+                  type="file"
+                  accept="image/*,.pdf"
+                  className="sr-only"
+                  onChange={(event) => setCacFile(event.target.files?.[0] || null)}
+                />
+                {previewUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={previewUrl} alt="CAC preview" className="max-h-[108px] rounded-[8px] object-contain" />
+                ) : (
+                  <>
+                    <UserSquareIcon className="h-8 w-8 text-[#0a9550]" />
+                    <span className="mt-3 text-[14px] font-semibold text-[#344054]">
+                      {cacFile?.name || "Click to upload CAC document"}
+                    </span>
+                    <span className="mt-1 text-[12px] text-[#98a2b3]">PDF, PNG, or JPG accepted</span>
+                  </>
+                )}
+              </label>
+            </div>
+
+            <Button
+              type="submit"
+              loading={loadingStep === "save"}
+              disabled={!cacFile}
+              className="dashboard-black-button w-[220px]"
+            >
+              Upgrade To Tier 3
+            </Button>
+          </form>
         </div>
       </Card>
     );
@@ -410,46 +472,16 @@ function CompliancePanel({
       <div className="max-w-[720px]">
         <p className="text-[18px] font-semibold text-[#101828]">Business Compliance</p>
         <p className="mt-2 text-[14px] leading-6 text-[#667085]">
-          Verify a director identity, upload the CAC document, and create your default business settlement account.
+          Every new business starts on Tier 1. Verify your BVN to move to Tier 2 and unlock transactions up to NGN
+          10,000 per payment. After that, upload your CAC document to move to Tier 3 and unlock up to NGN 5,000,000.
         </p>
-        {kycStatus === "rejected" ? (
+        {profile?.kyc?.status === "rejected" ? (
           <div className="mt-5 rounded-[12px] border border-[#ffd6d6] bg-[#fff5f5] p-4 text-[13px] font-medium text-[#d33a44]">
             {profile?.kyc?.rejectionReason || "Your previous submission was rejected. Please review and submit again."}
           </div>
         ) : null}
 
-        <form
-          className="mt-8 grid gap-6"
-          onSubmit={async (event) => {
-            event.preventDefault();
-            if (!token || !cacFile || !identityId || !identityVerified) {
-              toast.error("Complete identity verification and upload CAC before saving.");
-              return;
-            }
-
-            setLoadingStep("save");
-            try {
-              const response = await merchantApi.submitCorporateKyc(token, {
-                identityType,
-                identityNumber,
-                identityId,
-                cac: cacFile,
-              });
-
-              if (response.statusCode !== 200) {
-                toast.error(response.message || "Unable to submit compliance.");
-                return;
-              }
-
-              onApproved(response.data);
-              toast.success(response.message || "Compliance submitted and pending admin approval.");
-            } catch (error) {
-              toast.error(error instanceof Error ? error.message : "Unable to submit compliance.");
-            } finally {
-              setLoadingStep(null);
-            }
-          }}
-        >
+        <div className="mt-8 grid gap-6">
           <div className="grid gap-5 md:grid-cols-2">
             <label className="block">
               <span className="mb-2 block text-[14px] font-semibold text-[#202433]">Identity Type</span>
@@ -458,7 +490,6 @@ function CompliancePanel({
                   value={identityType}
                   onChange={(event) => {
                     setIdentityType(event.target.value);
-                    setIdentityVerified(false);
                     setIdentityId("");
                   }}
                   className="h-full w-full bg-transparent text-[14px] font-medium text-[#344054] outline-none"
@@ -476,7 +507,6 @@ function CompliancePanel({
               value={identityNumber}
               onChange={(event) => {
                 setIdentityNumber(event.target.value);
-                setIdentityVerified(false);
                 setIdentityId("");
               }}
               placeholder="Enter identity number"
@@ -546,8 +576,8 @@ function CompliancePanel({
                       return;
                     }
 
-                    setIdentityVerified(true);
-                    toast.success("Identity verified.");
+                    onApproved(response.data.business);
+                    toast.success("BVN verified. Your business is now on Tier 2.");
                   } catch (error) {
                     toast.error(error instanceof Error ? error.message : "Unable to verify OTP.");
                   } finally {
@@ -560,41 +590,7 @@ function CompliancePanel({
             ) : null}
           </div>
 
-          {identityVerified ? (
-            <div className="rounded-[12px] border border-dashed border-[#b7dfc9] bg-[#f8fffb] p-5">
-              <p className="text-[14px] font-semibold text-[#101828]">CAC Document</p>
-              <label className="mt-4 flex min-h-[132px] cursor-pointer flex-col items-center justify-center rounded-[10px] bg-white px-4 text-center">
-                <input
-                  type="file"
-                  accept="image/*,.pdf"
-                  className="sr-only"
-                  onChange={(event) => setCacFile(event.target.files?.[0] || null)}
-                />
-                {previewUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={previewUrl} alt="CAC preview" className="max-h-[108px] rounded-[8px] object-contain" />
-                ) : (
-                  <>
-                    <UserSquareIcon className="h-8 w-8 text-[#0a9550]" />
-                    <span className="mt-3 text-[14px] font-semibold text-[#344054]">
-                      {cacFile?.name || "Click to upload CAC document"}
-                    </span>
-                    <span className="mt-1 text-[12px] text-[#98a2b3]">PDF, PNG, or JPG accepted</span>
-                  </>
-                )}
-              </label>
-            </div>
-          ) : null}
-
-          <Button
-            type="submit"
-            loading={loadingStep === "save"}
-            disabled={!identityVerified || !cacFile}
-            className="dashboard-black-button w-[168px]"
-          >
-            Save
-          </Button>
-        </form>
+        </div>
       </div>
     </Card>
   );
@@ -680,16 +676,13 @@ function SecurityPanel({
 }) {
   const hasPaymentPin = Boolean(profile?.hasPaymentPin);
   const [modalStep, setModalStep] = useState<
-    "closed" | "password" | "otp" | "pin" | "success"
+    "closed" | "password" | "pin" | "success"
   >("closed");
   const [intent, setIntent] = useState<"create" | "change">(
     hasPaymentPin ? "change" : "create",
   );
-  const [loading, setLoading] = useState<"password" | "otp" | "pin" | null>(null);
-  const [otpId, setOtpId] = useState("");
-  const [otpRecipient, setOtpRecipient] = useState(profile?.emailAddress || "");
+  const [loading, setLoading] = useState<"password" | "pin" | null>(null);
   const [password, setPassword] = useState("");
-  const [otp, setOtp] = useState("");
   const [pin, setPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
   const [oldPin, setOldPin] = useState("");
@@ -700,9 +693,7 @@ function SecurityPanel({
   function resetFlow() {
     setModalStep("closed");
     setLoading(null);
-    setOtpId("");
     setPassword("");
-    setOtp("");
     setPin("");
     setConfirmPin("");
     setOldPin("");
@@ -713,9 +704,7 @@ function SecurityPanel({
 
   function openFlow(nextIntent: "create" | "change") {
     setIntent(nextIntent);
-    setOtpRecipient(profile?.emailAddress || "");
     setPassword("");
-    setOtp("");
     setPin("");
     setConfirmPin("");
     setOldPin("");
@@ -725,6 +714,38 @@ function SecurityPanel({
     setModalStep("password");
   }
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("open") === "create-pin") {
+      setIntent("create");
+      setPassword("");
+      setPin("");
+      setConfirmPin("");
+      setOldPin("");
+      setNewPin("");
+      setConfirmNewPin("");
+      setSuccessMessage("");
+      setModalStep("password");
+      window.history.replaceState({}, "", "/dashboard/settings?tab=security");
+    }
+
+    function openCreatePinFlow() {
+      setIntent("create");
+      setPassword("");
+      setPin("");
+      setConfirmPin("");
+      setOldPin("");
+      setNewPin("");
+      setConfirmNewPin("");
+      setSuccessMessage("");
+      setModalStep("password");
+    }
+
+    window.addEventListener("aris-pay:open-transfer-pin-create", openCreatePinFlow);
+    return () =>
+      window.removeEventListener("aris-pay:open-transfer-pin-create", openCreatePinFlow);
+  }, []);
+
   async function handlePasswordVerification() {
     if (!token || !password) {
       toast.error("Enter your password to continue.");
@@ -733,16 +754,14 @@ function SecurityPanel({
 
     setLoading("password");
     try {
-      const response = await merchantApi.sendPaymentPinOtp(token, password);
-      if (response.statusCode !== 200 || !response.data?.otpId) {
+      const response = await merchantApi.verifySecurityPassword(token, password);
+      if (response.statusCode !== 200) {
         toast.error(response.message || "Unable to verify password.");
         return;
       }
 
-      setOtpId(response.data.otpId);
-      setOtpRecipient(response.data.recipient || profile?.emailAddress || "");
-      setModalStep("otp");
-      toast.success("OTP sent to your email address.");
+      setModalStep("pin");
+      toast.success("Password verified.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Unable to verify password.");
     } finally {
@@ -750,38 +769,15 @@ function SecurityPanel({
     }
   }
 
-  async function handleOtpVerification() {
-    if (!token || !otpId || !otp) {
-      toast.error("Enter the OTP to continue.");
-      return;
-    }
-
-    setLoading("otp");
-    try {
-      const response = await merchantApi.verifyPaymentPinOtp(token, { otpId, otp });
-      if (response.statusCode !== 200) {
-        toast.error(response.message || "OTP verification failed.");
-        return;
-      }
-
-      setModalStep("pin");
-      toast.success("OTP verified.");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "OTP verification failed.");
-    } finally {
-      setLoading(null);
-    }
-  }
-
   async function handlePinSubmit() {
-    if (!token || !otpId || !otp) {
-      toast.error("Restart the flow and verify your OTP again.");
+    if (!token || !password) {
+      toast.error("Restart the flow and confirm your password again.");
       return;
     }
 
     if (intent === "create") {
-      if (!/^\d{4}$/.test(pin)) {
-        toast.error("PIN must be a 4-digit number.");
+      if (!/^\d{6}$/.test(pin)) {
+        toast.error("PIN must be a 6-digit number.");
         return;
       }
 
@@ -794,8 +790,8 @@ function SecurityPanel({
         toast.error("Enter your current PIN.");
         return;
       }
-      if (!/^\d{4}$/.test(newPin)) {
-        toast.error("New PIN must be a 4-digit number.");
+      if (!/^\d{6}$/.test(newPin)) {
+        toast.error("New PIN must be a 6-digit number.");
         return;
       }
       if (newPin !== confirmNewPin) {
@@ -809,14 +805,12 @@ function SecurityPanel({
       const response =
         intent === "create"
           ? await merchantApi.createPaymentPin(token, {
-              otpId,
-              otp,
+              password,
               pin,
               confirmPin,
             })
           : await merchantApi.changePaymentPin(token, {
-              otpId,
-              otp,
+              password,
               oldPin,
               newPin,
               confirmNewPin,
@@ -848,7 +842,7 @@ function SecurityPanel({
         <p className="text-[18px] font-semibold text-[#101828]">Transfer Security</p>
         <p className="mt-2 max-w-[620px] text-[14px] leading-6 text-[#667085]">
           Your payment PIN is used to authorize transfers inside Aris Pay. We&apos;ll confirm your
-          password and email OTP before any PIN change.
+          password before any PIN change.
         </p>
 
         <div className="mt-8 max-w-[760px] rounded-[18px] border border-[#eef1f5] bg-[#f8fafb] p-5">
@@ -861,8 +855,8 @@ function SecurityPanel({
                 <p className="text-[15px] font-semibold text-[#101828]">Payment PIN</p>
                 <p className="mt-1 text-[13px] leading-6 text-[#667085]">
                   {hasPaymentPin
-                    ? "Your 4-digit transfer PIN is active and will be required when completing transfers."
-                    : "Create a 4-digit transfer PIN to secure payouts and transfer approvals."}
+                    ? "Your 6-digit transfer PIN is active and will be required when completing transfers."
+                    : "Create a 6-digit transfer PIN to secure payouts and transfer approvals."}
                 </p>
               </div>
             </div>
@@ -895,9 +889,7 @@ function SecurityPanel({
             ? intent === "create"
               ? "Confirm your password"
               : "Confirm your password"
-            : modalStep === "otp"
-              ? "Verify OTP"
-              : modalStep === "pin"
+            : modalStep === "pin"
                 ? intent === "create"
                   ? "Create transfer PIN"
                   : "Change transfer PIN"
@@ -905,13 +897,11 @@ function SecurityPanel({
         }
         description={
           modalStep === "password"
-            ? "Enter your account password before we send a verification code."
-            : modalStep === "otp"
-              ? `Enter the OTP sent to ${otpRecipient || "your email address"}.`
-              : modalStep === "pin"
+            ? "Enter your account password before managing your transfer PIN."
+            : modalStep === "pin"
                 ? intent === "create"
-                  ? "Create a 4-digit PIN for approving transfers."
-                  : "Update the 4-digit PIN used for approving transfers."
+                  ? "Create a 6-digit PIN for approving transfers."
+                  : "Update the 6-digit PIN used for approving transfers."
                 : successMessage
         }
         maxWidthClassName="max-w-lg"
@@ -928,7 +918,8 @@ function SecurityPanel({
             <div className="flex justify-end gap-3">
               <Button
                 type="button"
-                className="h-11 border border-[#d0d5dd] bg-white px-5 text-[#344054] hover:bg-[#f8fafb]"
+                variant="secondary"
+                className="h-11 border border-[#d0d5dd] bg-white px-5 text-[#344054] hover:bg-[#f8fafb] hover:text-[#1f2937]"
                 onClick={resetFlow}
               >
                 Cancel
@@ -945,34 +936,6 @@ function SecurityPanel({
           </div>
         ) : null}
 
-        {modalStep === "otp" ? (
-          <div className="space-y-5">
-            <Input
-              label="One-Time Password"
-              value={otp}
-              onChange={(event) => setOtp(event.target.value)}
-              fieldClassName="border-transparent bg-[#f3f5f8]"
-            />
-            <div className="flex justify-end gap-3">
-              <Button
-                type="button"
-                className="h-11 border border-[#d0d5dd] bg-white px-5 text-[#344054] hover:bg-[#f8fafb]"
-                onClick={resetFlow}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                loading={loading === "otp"}
-                className="dashboard-black-button h-11 px-5"
-                onClick={() => void handleOtpVerification()}
-              >
-                Verify OTP
-              </Button>
-            </div>
-          </div>
-        ) : null}
-
         {modalStep === "pin" ? (
           <div className="space-y-5">
             {intent === "create" ? (
@@ -981,15 +944,19 @@ function SecurityPanel({
                   label="Enter PIN"
                   type="password"
                   value={pin}
-                  onChange={(event) => setPin(event.target.value)}
+                  onChange={(event) => setPin(event.target.value.replace(/\D/g, "").slice(0, 6))}
                   fieldClassName="border-transparent bg-[#f3f5f8]"
+                  placeholder="Enter 6-digit PIN"
                 />
                 <Input
                   label="Re-enter PIN"
                   type="password"
                   value={confirmPin}
-                  onChange={(event) => setConfirmPin(event.target.value)}
+                  onChange={(event) =>
+                    setConfirmPin(event.target.value.replace(/\D/g, "").slice(0, 6))
+                  }
                   fieldClassName="border-transparent bg-[#f3f5f8]"
+                  placeholder="Re-enter 6-digit PIN"
                 />
               </>
             ) : (
@@ -998,29 +965,35 @@ function SecurityPanel({
                   label="Old PIN"
                   type="password"
                   value={oldPin}
-                  onChange={(event) => setOldPin(event.target.value)}
+                  onChange={(event) => setOldPin(event.target.value.replace(/\D/g, "").slice(0, 6))}
                   fieldClassName="border-transparent bg-[#f3f5f8]"
+                  placeholder="Enter current 6-digit PIN"
                 />
                 <Input
                   label="New PIN"
                   type="password"
                   value={newPin}
-                  onChange={(event) => setNewPin(event.target.value)}
+                  onChange={(event) => setNewPin(event.target.value.replace(/\D/g, "").slice(0, 6))}
                   fieldClassName="border-transparent bg-[#f3f5f8]"
+                  placeholder="Enter new 6-digit PIN"
                 />
                 <Input
                   label="Confirm New PIN"
                   type="password"
                   value={confirmNewPin}
-                  onChange={(event) => setConfirmNewPin(event.target.value)}
+                  onChange={(event) =>
+                    setConfirmNewPin(event.target.value.replace(/\D/g, "").slice(0, 6))
+                  }
                   fieldClassName="border-transparent bg-[#f3f5f8]"
+                  placeholder="Re-enter new 6-digit PIN"
                 />
               </>
             )}
             <div className="flex justify-end gap-3">
               <Button
                 type="button"
-                className="h-11 border border-[#d0d5dd] bg-white px-5 text-[#344054] hover:bg-[#f8fafb]"
+                variant="secondary"
+                className="h-11 border border-[#d0d5dd] bg-white px-5 text-[#344054] hover:bg-[#f8fafb] hover:text-[#1f2937]"
                 onClick={resetFlow}
               >
                 Cancel

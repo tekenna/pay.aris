@@ -2,8 +2,10 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
+import { TransactionReceipt } from "@/components/checkout/transaction-receipt";
 import { MerchantShell } from "@/components/dashboard/merchant-shell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -16,7 +18,9 @@ import {
   XIcon,
 } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
+import { Modal } from "@/components/ui/modal";
 import { merchantApi } from "@/lib/merchant-api";
+import { downloadReceiptPdf } from "@/lib/receipt-pdf";
 import {
   BANKS,
   type Bank,
@@ -37,6 +41,7 @@ import { formatCurrency } from "@/lib/utils";
 import { useBusinessSession } from "@/store/business-session-provider";
 
 type DrawerStep = "confirm" | "success" | null;
+type TransferPinModalStep = "closed" | "create" | "enter-pin";
 
 function mapMerchantBank(bank: MerchantBank): Bank {
   return {
@@ -123,7 +128,24 @@ function buildBusinessAccounts(
   return accounts;
 }
 
+function formatTransferAmountInput(value: string) {
+  const sanitized = value.replace(/[^\d.]/g, "");
+  const [rawInteger = "", ...rawDecimalParts] = sanitized.split(".");
+  const integerDigits = rawInteger.replace(/^0+(?=\d)/, "") || rawInteger;
+  const decimalDigits = rawDecimalParts.join("").slice(0, 2);
+  const formattedInteger = integerDigits
+    ? Number(integerDigits).toLocaleString("en-NG")
+    : "";
+
+  if (sanitized.includes(".")) {
+    return `${formattedInteger || "0"}.${decimalDigits}`;
+  }
+
+  return formattedInteger;
+}
+
 export default function WithdrawPage() {
+  const router = useRouter();
   const { session } = useBusinessSession();
   const [profile, setProfile] = useState<Business | null>(null);
   const [recipients, setRecipients] = useState<RecentBusinessTransfer[]>([]);
@@ -145,15 +167,21 @@ export default function WithdrawPage() {
     "idle" | "loading" | "success" | "error"
   >("idle");
   const [drawerStep, setDrawerStep] = useState<DrawerStep>(null);
+  const [transferPinModalStep, setTransferPinModalStep] =
+    useState<TransferPinModalStep>("closed");
   const [transferResult, setTransferResult] = useState<
     Awaited<ReturnType<typeof merchantApi.createTransfer>>["data"] | null
   >(null);
+  const [transferCompletedAt, setTransferCompletedAt] = useState<string | null>(
+    null,
+  );
   const [submitting, setSubmitting] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showBankList, setShowBankList] = useState(false);
   const suggestionsRef = useRef<HTMLDivElement | null>(null);
   const bankListRef = useRef<HTMLDivElement | null>(null);
   const sourceAccountListRef = useRef<HTMLDivElement | null>(null);
+  const receiptRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     async function loadData() {
@@ -230,6 +258,9 @@ export default function WithdrawPage() {
   const numericAmount = Number(amount.replace(/,/g, ""));
   const transferFee = 100;
   const totalDebit = numericAmount > 0 ? numericAmount + transferFee : 0;
+  const hasPaymentPin = Boolean(
+    profile?.hasPaymentPin ?? session?.business.hasPaymentPin,
+  );
 
   useEffect(() => {
     function handlePointerDown(event: MouseEvent) {
@@ -360,8 +391,8 @@ export default function WithdrawPage() {
       return;
     }
 
-    if (!transferPin) {
-      toast.error("Enter your transfer PIN to continue.");
+    if (!/^\d{6}$/.test(transferPin)) {
+      toast.error("Enter your 6-digit transfer PIN to continue.");
       return;
     }
 
@@ -385,7 +416,9 @@ export default function WithdrawPage() {
       }
 
       setTransferResult(response.data);
+      setTransferCompletedAt(new Date().toISOString());
       setDrawerStep("success");
+      setTransferPinModalStep("closed");
       setTransferPin("");
       toast.success(response.message || "Transfer completed successfully.");
 
@@ -404,32 +437,43 @@ export default function WithdrawPage() {
     }
   }
 
-  function downloadReceipt() {
-    if (!transferResult) {
+  async function downloadReceipt() {
+    if (!transferResult || !receiptRef.current) {
       return;
     }
 
-    const receipt = [
-      "Aris Pay Transfer Receipt",
-      `Reference: ${transferResult.reference}`,
-      `Amount: ${formatCurrency(transferResult.amount)}`,
-      `Fee: ${formatCurrency(transferResult.fee)}`,
-      `Total Debit: ${formatCurrency(transferResult.totalDebit)}`,
-      `Recipient: ${transferResult.recipient.accountName}`,
-      `Recipient Account: ${transferResult.recipient.accountNumber}`,
-      `Recipient Bank: ${transferResult.recipient.bankName || "--"}`,
-      `Sender: ${transferResult.sender.accountName}`,
-      `Sender Account: ${transferResult.sender.accountNumber}`,
-      `Sender Bank: ${transferResult.sender.bankName}`,
-    ].join("\n");
+    try {
+      await downloadReceiptPdf(
+        receiptRef.current,
+        `${transferResult.reference}-receipt.pdf`,
+      );
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Unable to download receipt.",
+      );
+    }
+  }
 
-    const blob = new Blob([receipt], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = `${transferResult.reference}.txt`;
-    anchor.click();
-    URL.revokeObjectURL(url);
+  function closeTransferPinModal() {
+    setTransferPinModalStep("closed");
+    setTransferPin("");
+  }
+
+  function openTransferPinFlow() {
+    if (!hasPaymentPin) {
+      setTransferPinModalStep("create");
+      return;
+    }
+
+    setTransferPin("");
+    setTransferPinModalStep("enter-pin");
+  }
+
+  function goToCreatePin() {
+    setDrawerStep(null);
+    setTransferPinModalStep("closed");
+    setTransferPin("");
+    router.push("/dashboard/settings?tab=security&open=create-pin");
   }
 
   return (
@@ -564,6 +608,7 @@ export default function WithdrawPage() {
             <div ref={suggestionsRef} className="relative">
               <Input
                 label="Enter Recipient Account Number"
+                placeholder="e.g 0123456789"
                 value={accountNumber}
                 onFocus={() => {
                   setShowSuggestions(true);
@@ -673,9 +718,9 @@ export default function WithdrawPage() {
                       fieldClassName="h-[48px] rounded-[12px] border-transparent bg-[#f3f5f8]"
                     />
                   </div>
-                  {filteredBanks.map((bank) => (
+                  {filteredBanks.map((bank, index) => (
                     <button
-                      key={`${bank.bankCode}-${bank.name}`}
+                      key={`${bank.bankCode}-${bank.name}-${index}`}
                       type="button"
                       className="flex w-full items-center gap-3 rounded-[12px] px-3 py-3 text-left transition hover:bg-[#f8fafb]"
                       onClick={() => {
@@ -743,15 +788,17 @@ export default function WithdrawPage() {
 
             <Input
               label="Amount"
+              placeholder="e.g 5000"
               value={amount}
               onChange={(event) =>
-                setAmount(event.target.value.replace(/[^\d.]/g, ""))
+                setAmount(formatTransferAmountInput(event.target.value))
               }
               fieldSize="lg"
               fieldClassName="h-[60px] rounded-[14px] border-transparent bg-[#f3f5f8]"
             />
             <Input
               label="Narration(Optional)"
+              placeholder="e.g Office supplies payment"
               value={narration}
               onChange={(event) => setNarration(event.target.value)}
               fieldSize="lg"
@@ -818,7 +865,10 @@ export default function WithdrawPage() {
           <button
             type="button"
             className="absolute inset-0"
-            onClick={() => setDrawerStep(null)}
+            onClick={() => {
+              setDrawerStep(null);
+              closeTransferPinModal();
+            }}
             aria-label="Close transfer drawer"
           />
           <aside className="relative h-full w-full max-w-[468px] overflow-y-auto bg-white px-5 py-5 shadow-2xl md:px-6">
@@ -830,7 +880,10 @@ export default function WithdrawPage() {
               </h2>
               <button
                 type="button"
-                onClick={() => setDrawerStep(null)}
+                onClick={() => {
+                  setDrawerStep(null);
+                  closeTransferPinModal();
+                }}
                 className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#eff4fb] text-[#98a2b3]"
               >
                 <XIcon className="h-4 w-4" />
@@ -896,21 +949,10 @@ export default function WithdrawPage() {
                   </div>
                 </div>
 
-                <div className="mt-6">
-                  <Input
-                    label="Transfer PIN"
-                    type="password"
-                    value={transferPin}
-                    onChange={(event) => setTransferPin(event.target.value)}
-                    fieldClassName="bg-[#f3f5f8] border-transparent"
-                  />
-                </div>
-
                 <Button
                   type="button"
-                  loading={submitting}
                   className="dashboard-black-button mt-8 h-[50px] w-full rounded-[14px] text-[18px] font-bold"
-                  onClick={() => void handleTransferConfirmation()}
+                  onClick={openTransferPinFlow}
                 >
                   Confirm Transfer
                 </Button>
@@ -950,7 +992,7 @@ export default function WithdrawPage() {
                 <Button
                   type="button"
                   className="dashboard-black-button mt-8 h-[50px] w-full rounded-[14px] text-[18px] font-bold"
-                  onClick={downloadReceipt}
+                  onClick={() => void downloadReceipt()}
                 >
                   Download Receipt
                 </Button>
@@ -966,6 +1008,107 @@ export default function WithdrawPage() {
           </aside>
         </div>
       ) : null}
+
+      {transferResult ? (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none fixed left-[-200vw] top-0 opacity-0"
+        >
+          <div ref={receiptRef}>
+            <TransactionReceipt
+              amount={transferResult.amount}
+              paidAt={transferCompletedAt}
+              status={transferResult.status}
+              sessionId={
+                transferResult.providerReference ||
+                transferResult.reference ||
+                "--"
+              }
+              recipientName={transferResult.recipient.accountName}
+              bankName={transferResult.recipient.bankName || "--"}
+              accountNumber={transferResult.recipient.accountNumber}
+              sourceBankName={transferResult.sender.bankName}
+              sourceAccountName={transferResult.sender.accountNumber}
+              narration={narration || "--"}
+            />
+          </div>
+        </div>
+      ) : null}
+
+      <Modal
+        open={transferPinModalStep !== "closed"}
+        onClose={closeTransferPinModal}
+        title={
+          transferPinModalStep === "create"
+            ? "Create your transfer PIN"
+            : "Enter transfer PIN"
+        }
+        description={
+          transferPinModalStep === "create"
+            ? "You need to create a 6-digit transfer PIN in Settings before you can complete withdrawals."
+            : "Enter your 6-digit transfer PIN to authorize this transfer."
+        }
+        maxWidthClassName="max-w-md"
+      >
+        {transferPinModalStep === "create" ? (
+          <div className="space-y-5">
+            <div className="rounded-[18px] bg-[#f8fafb] p-5 text-sm leading-6 text-[#667085]">
+              Your transfer PIN is not set yet. Create one in Settings, then come back to
+              complete this transfer.
+            </div>
+            <div className="flex justify-end gap-3">
+              <Button
+                type="button"
+                variant="secondary"
+                className="h-11 border border-[#d0d5dd] bg-white px-5 text-[#344054] hover:bg-[#f8fafb] hover:text-[#1f2937]"
+                onClick={closeTransferPinModal}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                className="dashboard-black-button h-11 px-5"
+                onClick={goToCreatePin}
+              >
+                Create PIN
+              </Button>
+            </div>
+          </div>
+        ) : null}
+
+        {transferPinModalStep === "enter-pin" ? (
+          <div className="space-y-5">
+            <Input
+              label="Transfer PIN"
+              type="password"
+              value={transferPin}
+              onChange={(event) =>
+                setTransferPin(event.target.value.replace(/\D/g, "").slice(0, 6))
+              }
+              fieldClassName="border-transparent bg-[#f3f5f8]"
+              placeholder="Enter 6-digit PIN"
+            />
+            <div className="flex justify-end gap-3">
+              <Button
+                type="button"
+                variant="secondary"
+                className="h-11 border border-[#d0d5dd] bg-white px-5 text-[#344054] hover:bg-[#f8fafb] hover:text-[#1f2937]"
+                onClick={closeTransferPinModal}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                loading={submitting}
+                className="dashboard-black-button h-11 px-5"
+                onClick={() => void handleTransferConfirmation()}
+              >
+                Continue
+              </Button>
+            </div>
+          </div>
+        ) : null}
+      </Modal>
     </MerchantShell>
   );
 }

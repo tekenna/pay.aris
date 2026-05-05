@@ -11,6 +11,7 @@ import type { BusinessSession, RegistrationDraft } from "@/lib/types";
 
 const SESSION_KEY = "aris-pay.business.session";
 const REGISTRATION_KEY = "aris-pay.business.registration";
+const SESSION_EVENT = "aris-pay:session-updated";
 
 type BusinessSessionContextValue = {
   isReady: boolean;
@@ -34,29 +35,56 @@ export function BusinessSessionProvider({
   const [registrationDraft, setRegistrationDraftState] = useState<RegistrationDraft>({});
 
   useEffect(() => {
-    const frame = window.requestAnimationFrame(() => {
+    function syncSessionState() {
       try {
         const storedSession = window.localStorage.getItem(SESSION_KEY);
         const storedDraft = window.sessionStorage.getItem(REGISTRATION_KEY);
 
         if (storedSession) {
           setSessionState(JSON.parse(storedSession) as BusinessSession);
+        } else {
+          setSessionState(null);
         }
 
         if (storedDraft) {
           setRegistrationDraftState(JSON.parse(storedDraft) as RegistrationDraft);
+        } else {
+          setRegistrationDraftState({});
         }
       } catch {
         window.localStorage.removeItem(SESSION_KEY);
         window.sessionStorage.removeItem(REGISTRATION_KEY);
         setSessionState(null);
         setRegistrationDraftState({});
+      }
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      try {
+        syncSessionState();
       } finally {
         setIsReady(true);
       }
     });
 
-    return () => window.cancelAnimationFrame(frame);
+    function handleStorage(event: StorageEvent) {
+      if (!event.key || event.key === SESSION_KEY || event.key === REGISTRATION_KEY) {
+        syncSessionState();
+      }
+    }
+
+    function handleSessionEvent() {
+      syncSessionState();
+    }
+
+    window.addEventListener("storage", handleStorage);
+    window.addEventListener(SESSION_EVENT, handleSessionEvent);
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener(SESSION_EVENT, handleSessionEvent);
+    };
   }, []);
 
   const value = useMemo<BusinessSessionContextValue>(

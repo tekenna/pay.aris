@@ -69,7 +69,8 @@ export default function CreateAccountPage() {
   const states = stateCities as NigerianState[];
   const initialState =
     registrationDraft.addressState ||
-    states.find((state) => state.name === "Lagos")?.name ||
+    states.find((state) => state.name === "Abuja Federal Capital Territory")
+      ?.name ||
     states[0]?.name ||
     "";
   const initialCities =
@@ -156,10 +157,10 @@ export default function CreateAccountPage() {
               contactLastName: form.contactLastName,
               phoneNumber: normalizedPhoneNumber,
               emailAddress: form.emailAddress,
+              taxIdentificationNumber: form.taxIdentificationNumber,
               addressCountry: form.addressCountry,
               addressState: form.addressState,
               addressCity: form.addressCity,
-              description: form.taxIdentificationNumber,
             };
 
             setRegistrationDraft(nextDraft);
@@ -174,7 +175,6 @@ export default function CreateAccountPage() {
                 phoneNumber: normalizedPhoneNumber,
                 emailAddress: form.emailAddress,
                 password: form.password,
-                description: form.taxIdentificationNumber,
                 taxIdentificationNumber: form.taxIdentificationNumber,
                 address: {
                   city: form.addressCity,
@@ -291,7 +291,7 @@ export default function CreateAccountPage() {
                 />
               </div>
             </Field>
-            <Field label="TIN (Tax Identification Number)">
+            <Field label="TIN   (Optional)">
               <AuthTextInput
                 name="tin"
                 placeholder="e.g 12345678-0001"

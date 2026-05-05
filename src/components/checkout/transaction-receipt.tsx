@@ -1,5 +1,4 @@
 import Image from "next/image";
-import { getBankLogoUrl } from "@/lib/bank-suggestions";
 
 type TransactionReceiptProps = {
   amount: number;
@@ -13,6 +12,14 @@ type TransactionReceiptProps = {
   sourceAccountName: string;
   narration?: string | null;
 };
+
+const ARIS_LOGO_URL =
+  "https://res.cloudinary.com/doopxwl8l/image/upload/q_auto/f_auto/v1777482297/logo_fy7vut.png";
+const BRAND = "#0a9251";
+const BRAND_SOFT = "#eaf8ef";
+const TEXT = "#273142";
+const MUTED = "#6c7f9d";
+const DIVIDER = "#e6edf5";
 
 function formatReceiptAmount(amount: number) {
   return new Intl.NumberFormat("en-NG", {
@@ -42,28 +49,28 @@ function formatReceiptDateTime(value?: string | null) {
   }).format(date);
 }
 
+function maskDisplayValue(value: string) {
+  const digits = value.replace(/\D/g, "");
+  if (digits.length < 4) {
+    return value || "--";
+  }
+
+  return `****${digits.slice(-4)}`;
+}
+
 function ReceiptRow({
   label,
   value,
-  logoSrc,
 }: {
   label: string;
   value: string;
-  logoSrc?: string | null;
 }) {
   return (
-    <div className="grid grid-cols-[150px_minmax(0,1fr)] items-start gap-6 py-4 text-[14px]">
-      <p className="text-[#7d879c]">{label}</p>
-      <div className="justify-self-end text-right text-[#1d2746]">
-        {logoSrc ? (
-          <div className="mb-2 flex items-center justify-end gap-2">
-            <Image src={logoSrc} alt="" width={22} height={22} className="h-[22px] w-[22px] object-contain" />
-            <span>{value}</span>
-          </div>
-        ) : (
-          <p>{value}</p>
-        )}
-      </div>
+    <div className="grid grid-cols-[182px_minmax(0,1fr)] items-start gap-6 py-[18px] text-[14px]">
+      <p className="font-medium text-[#6f82a3]">{label}</p>
+      <p className="text-right text-[14px] font-medium leading-6 text-[#273142]">
+        {value}
+      </p>
     </div>
   );
 }
@@ -80,61 +87,91 @@ export function TransactionReceipt({
   sourceAccountName,
   narration,
 }: TransactionReceiptProps) {
-  const recipientBankLogo = getBankLogoUrl(bankName);
-  const sourceBankLogo = getBankLogoUrl(sourceBankName);
-  const resolvedStatus = status === "success" ? "00 - Approved or Completed Successfully" : status || "--";
+  const displayDate = formatReceiptDateTime(paidAt);
+  const resolvedStatus =
+    status === "success" ? "Transaction Successful" : status || "--";
+  const sourceAccountDisplay = sourceAccountName
+    ? maskDisplayValue(sourceAccountName)
+    : "--";
 
   return (
-    <div className="relative w-[595px] overflow-hidden bg-white font-sans text-[#1d2746]">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_24%,rgba(0,136,79,0.05),transparent_22%),radial-gradient(circle_at_77%_19%,rgba(77,179,129,0.08),transparent_16%),radial-gradient(circle_at_45%_58%,rgba(15,127,69,0.05),transparent_24%),radial-gradient(circle_at_82%_76%,rgba(16,185,129,0.05),transparent_18%)]" />
-      <div className="absolute left-0 top-0 h-[76px] w-[84px] bg-[#00884f]" />
-      <div className="absolute left-6 right-6 top-0 h-[78px] rounded-b-[2px] bg-[linear-gradient(90deg,rgba(231,248,238,0.96),rgba(245,252,248,0.9))]" />
-      <div className="relative z-10 px-6 pb-14 pt-10">
-        <div className="flex items-start justify-between">
-          <p className="pt-4 text-[13px] font-semibold tracking-[0.02em] text-[#1b2a22]">
-            TRANSACTION RECEIPT
-          </p>
+    <div
+      className="relative min-h-[842px] w-[595px] overflow-hidden bg-white font-sans"
+      style={{ color: TEXT }}
+    >
+      <div className="absolute inset-0 opacity-[0.13] [background-image:radial-gradient(circle_at_16%_14%,transparent_0_48px,#e7edf4_49px_50px,transparent_51px),radial-gradient(circle_at_75%_28%,transparent_0_62px,#e7edf4_63px_64px,transparent_65px),radial-gradient(circle_at_53%_73%,transparent_0_76px,#e7edf4_77px_78px,transparent_79px),radial-gradient(circle_at_18%_88%,transparent_0_54px,#e7edf4_55px_56px,transparent_57px)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.99),rgba(255,255,255,0.965))]" />
+
+      <div className="relative z-10 px-[59px] pb-[68px] pt-[56px]">
+        <div className="flex items-start justify-between gap-6">
           <Image
-            src="/images/white-logo.svg"
+            src={ARIS_LOGO_URL}
             alt="Aris Pay"
-            width={162}
-            height={34}
-            className="h-[34px] w-[162px] object-contain object-right logo-on-light"
+            width={110}
+            height={30}
+            className="h-[30px] w-auto object-contain"
             priority
           />
+          <p className="pt-[2px] text-[12px] font-medium text-[#92a2bc]">
+            {displayDate}
+          </p>
         </div>
 
-        <div className="mt-10 flex flex-col items-center">
-          <div className="flex h-[76px] w-[76px] items-center justify-center rounded-full bg-[#0aa35d] shadow-[0_10px_28px_rgba(10,163,93,0.28)]">
-            <div className="flex h-[54px] w-[54px] items-center justify-center rounded-full border-[8px] border-white/35 text-[32px] font-semibold text-white">
-              ✓
-            </div>
-          </div>
-          <p className="mt-8 text-[48px] font-semibold leading-none tracking-[-0.04em] text-[#1d2746]">
+        <div
+          className="mt-[42px] h-[3px] w-full rounded-full"
+          style={{
+            backgroundImage: `repeating-linear-gradient(90deg, ${BRAND_SOFT} 0 4px, transparent 4px 8px)`,
+          }}
+        />
+
+        <div className="mt-[21px]">
+          <p className="text-[16px] font-semibold text-[#62779b]">Transfer Receipt</p>
+          <p className="mt-[24px] text-[38px] font-semibold tracking-[-0.045em] text-[#25324a]">
             ₦{formatReceiptAmount(amount)}
           </p>
-          <div className="mt-4 rounded-[4px] bg-[#e4f8ec] px-3 py-1.5 text-[13px] font-medium text-[#0a7c47]">
-            Transaction Successful
+          <div
+            className="mt-[22px] inline-flex rounded-[6px] px-[10px] py-[6px] text-[13px] font-medium"
+            style={{ backgroundColor: BRAND_SOFT, color: BRAND }}
+          >
+            {resolvedStatus}
           </div>
-          <p className="mt-8 text-[14px] text-[#7f8ba3]">{formatReceiptDateTime(paidAt)}</p>
         </div>
 
-        <div className="mt-8 border-t border-dashed border-[#e7ebf1]" />
+        <div className="mt-[42px] border-t border-dashed" style={{ borderColor: DIVIDER }} />
 
-        <div className="mt-3">
-          <ReceiptRow label="Status" value={resolvedStatus} />
+        <div>
+          <ReceiptRow
+            label="Beneficiary"
+            value={`${recipientName} | ${accountNumber}`}
+          />
+          <div className="border-t border-dashed" style={{ borderColor: DIVIDER }} />
+          <ReceiptRow label="Beneficiary Bank" value={bankName} />
+        </div>
+
+        <div className="mt-[2px] border-t border-dashed" style={{ borderColor: DIVIDER }} />
+
+        <div>
+          <ReceiptRow label="Source Bank" value={sourceBankName} />
+          <div className="border-t border-dashed" style={{ borderColor: DIVIDER }} />
+          <ReceiptRow label="Source Account" value={sourceAccountDisplay} />
+          <div className="border-t border-dashed" style={{ borderColor: DIVIDER }} />
+          <ReceiptRow label="Source Name" value={sourceAccountName || "--"} />
+        </div>
+
+        <div className="mt-[2px] border-t border-dashed" style={{ borderColor: DIVIDER }} />
+
+        <div>
           <ReceiptRow label="Session ID" value={sessionId} />
-          <ReceiptRow label="Transaction Type" value="Inwards" />
-          <ReceiptRow label="Recipient" value={recipientName} />
-          <ReceiptRow label="Bank Name" value={bankName} logoSrc={recipientBankLogo} />
-          <ReceiptRow label="Account Number" value={accountNumber} />
-          <ReceiptRow label="Source Bank" value={sourceBankName} logoSrc={sourceBankLogo} />
-          <ReceiptRow label="Source Account" value={sourceAccountName} />
+        </div>
+
+        <div className="mt-[2px] border-t border-dashed" style={{ borderColor: DIVIDER }} />
+
+        <div>
           <ReceiptRow label="Narration" value={narration || "--"} />
         </div>
 
-        <div className="mt-12 border-t-[3px] border-[#00884f]" />
-        <p className="mt-4 text-[13px] text-[#7d879c]">Disclaimer:</p>
+        <div className="mt-[2px] border-t border-dashed" style={{ borderColor: DIVIDER }} />
+        <div className="mt-[78px] h-[3px] w-full" style={{ backgroundColor: BRAND }} />
       </div>
     </div>
   );

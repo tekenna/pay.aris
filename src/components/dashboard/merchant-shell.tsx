@@ -89,11 +89,10 @@ export function MerchantShell({
     );
   }
 
-  const kycStatus = session.business.kyc?.status || "not_submitted";
+  const businessTierLevel = Number(session.business.businessTierLevel || 1);
   const currentRole = session.business.currentRole || "owner";
   const isSettingsPage = pathname === "/dashboard/settings";
-  const shouldBlockForCompliance =
-    !["pending", "approved"].includes(kycStatus) && !isSettingsPage;
+  const shouldBlockForCompliance = businessTierLevel < 2 && !isSettingsPage;
   const visibleNavItems = navItems.filter((item) => {
     if (
       ["/dashboard/accounts", "/dashboard/payment", "/dashboard/checkout", "/dashboard/transactions"].includes(
@@ -309,13 +308,39 @@ export function MerchantShell({
               <SettingsIcon className="h-7 w-7" />
             </div>
             <h2 className="mt-5 text-[20px] font-bold text-[#101828]">
-              Complete your account setup
+              Verify your BVN to complete your account setup
             </h2>
             <p className="mt-3 text-[14px] leading-6 text-[#667085]">
-              Submit your business compliance details to continue. Once your
-              documents are submitted, this setup blocker will be removed while
-              admin review continues in the background.
+              Every new business starts on Tier 1 and cannot process
+              transactions yet. Verify your BVN to move to Tier 2, create your
+              settlement accounts instantly, and unlock transactions up to NGN
+              10,000 per payment.
             </p>
+            <div className="mt-5 rounded-[14px] border border-[#e4e7ec] bg-[#f8fafc] p-4 text-left">
+              <div className="flex items-center justify-between border-b border-dashed border-[#d0d5dd] pb-3">
+                <span className="text-sm font-semibold text-[#344054]">Tier 1</span>
+                <span className="text-xs font-semibold uppercase tracking-[0.08em] text-[#b42318]">
+                  Locked
+                </span>
+              </div>
+              <p className="mt-3 text-sm text-[#667085]">
+                No transactions until BVN verification is completed.
+              </p>
+              <div className="mt-4 flex items-center justify-between border-b border-dashed border-[#d0d5dd] pb-3">
+                <span className="text-sm font-semibold text-[#344054]">Tier 2</span>
+                <span className="text-sm font-semibold text-[#0a9550]">NGN 10,000 max</span>
+              </div>
+              <p className="mt-3 text-sm text-[#667085]">
+                BVN verified. Settlement accounts are created immediately.
+              </p>
+              <div className="mt-4 flex items-center justify-between pb-1">
+                <span className="text-sm font-semibold text-[#344054]">Tier 3</span>
+                <span className="text-sm font-semibold text-[#0a9550]">NGN 5,000,000 max</span>
+              </div>
+              <p className="mt-3 text-sm text-[#667085]">
+                Upload your CAC document to unlock full business limits.
+              </p>
+            </div>
             <Button
               type="button"
               className="dashboard-black-button mt-7 w-full"
@@ -324,7 +349,7 @@ export function MerchantShell({
                 router.replace("/dashboard/settings?tab=compliance");
               }}
             >
-              Complete Setup
+              Verify BVN
             </Button>
           </div>
         </div>

@@ -26,6 +26,22 @@ export function getTransactionType(transaction: BusinessTransaction) {
 }
 
 export function getTransactionCategory(transaction: BusinessTransaction) {
+  if (transaction.category === "checkout_fee") {
+    return "Checkout Fee";
+  }
+
+  if (transaction.category === "checkout") {
+    return "Checkout";
+  }
+
+  if (transaction.category === "payment_link") {
+    return "Payment Link";
+  }
+
+  if (transaction.category === "transfer") {
+    return "Transfer";
+  }
+
   if (
     transaction.paymentMethod === "checkout_fee" ||
     transaction.channel === "checkout_fee" ||

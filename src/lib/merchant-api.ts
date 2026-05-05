@@ -18,33 +18,108 @@ import type {
 } from "@/lib/types";
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.ariswallex.com/api";
+  process.env.NEXT_PUBLIC_API_BASE_URL || "https://aris-api-ftgj.onrender.com/api";
 const SESSION_KEY = "aris-pay.business.session";
 const REGISTRATION_KEY = "aris-pay.business.registration";
+const SESSION_EVENT = "aris-pay:session-updated";
 
-function handleRestrictedAccess(
-  response: Response,
-  payload: { statusCode?: number; message?: string } | null,
-) {
+function clearStoredSession() {
   if (typeof window === "undefined") return;
-  if (response.status !== 403 && payload?.statusCode !== 403) {
-    return;
-  }
-
   window.localStorage.removeItem(SESSION_KEY);
   window.sessionStorage.removeItem(REGISTRATION_KEY);
+  window.dispatchEvent(new Event(SESSION_EVENT));
+}
+
+function redirectToLogin() {
+  if (typeof window === "undefined") return;
   window.location.replace("/login");
 }
+
+function getStoredSession(): BusinessSession | null {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const storedSession = window.localStorage.getItem(SESSION_KEY);
+    if (!storedSession) {
+      return null;
+    }
+
+    return JSON.parse(storedSession) as BusinessSession;
+  } catch {
+    clearStoredSession();
+    return null;
+  }
+}
+
+function setStoredSession(session: BusinessSession) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  window.dispatchEvent(new Event(SESSION_EVENT));
+}
+
+let refreshPromise: Promise<string | null> | null = null;
 
 type RequestOptions = {
   method?: "GET" | "POST" | "PUT";
   body?: unknown;
   token?: string;
+  retryOnAuthFailure?: boolean;
 };
+
+async function refreshBusinessAccessToken() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  if (refreshPromise) {
+    return refreshPromise;
+  }
+
+  refreshPromise = (async () => {
+    const currentSession = getStoredSession();
+    if (!currentSession?.refreshToken) {
+      clearStoredSession();
+      return null;
+    }
+
+    let response: Response;
+    try {
+      response = await fetch(`${API_BASE_URL}/business-auth/refresh`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refreshToken: currentSession.refreshToken }),
+        cache: "no-store",
+      });
+    } catch {
+      return null;
+    }
+
+    const payload = (await response.json().catch(() => null)) as ApiResponse<BusinessSession> | null;
+
+    if (!payload || payload.statusCode !== 200 || !payload.data?.token) {
+      clearStoredSession();
+      return null;
+    }
+
+    const nextSession: BusinessSession = {
+      business: payload.data.business,
+      token: payload.data.token,
+      refreshToken: payload.data.refreshToken || currentSession.refreshToken,
+    };
+    setStoredSession(nextSession);
+    return nextSession.token;
+  })();
+
+  try {
+    return await refreshPromise;
+  } finally {
+    refreshPromise = null;
+  }
+}
 
 async function request<T>(
   path: string,
-  { method = "GET", body, token }: RequestOptions = {},
+  { method = "GET", body, token, retryOnAuthFailure = true }: RequestOptions = {},
 ): Promise<ApiResponse<T>> {
   let response: Response;
   const isFormData =
@@ -66,10 +141,27 @@ async function request<T>(
 
   const payload = (await response.json().catch(() => null)) as ApiResponse<T> | null;
 
-  handleRestrictedAccess(response, payload);
-
   if (!payload) {
     throw new Error("Unexpected API response.");
+  }
+
+  const isRestricted =
+    response.status === 403 || response.status === 401 || payload?.statusCode === 403 || payload?.statusCode === 401;
+
+  if (token && retryOnAuthFailure && isRestricted && path !== "/business-auth/refresh") {
+    const refreshedToken = await refreshBusinessAccessToken();
+    if (refreshedToken) {
+      return request<T>(path, {
+        method,
+        body,
+        token: refreshedToken,
+        retryOnAuthFailure: false,
+      });
+    }
+
+    clearStoredSession();
+    redirectToLogin();
+    return payload;
   }
 
   return payload;
@@ -144,7 +236,7 @@ export const merchantApi = {
     token: string,
     body: { identityType: string; identityId: string; otp: string },
   ) {
-    return request<{ identityId: string; verified: boolean }>(
+    return request<{ identityId: string; verified: boolean; business: Business; safehaven?: unknown }>(
       "/businesses/kyc/identity/validate",
       { method: "POST", token, body },
     );
@@ -341,27 +433,7 @@ export const merchantApi = {
       body: { password },
     });
   },
-  sendPaymentPinOtp(token: string, password: string) {
-    return request<{ otpId: string; recipient: string; hasPaymentPin: boolean }>(
-      "/businesses/security/pin/otp",
-      {
-        method: "POST",
-        token,
-        body: { password },
-      },
-    );
-  },
-  verifyPaymentPinOtp(token: string, body: { otpId: string; otp: string }) {
-    return request<{ otpId: string; verified: boolean; hasPaymentPin: boolean }>(
-      "/businesses/security/pin/otp/verify",
-      {
-        method: "POST",
-        token,
-        body,
-      },
-    );
-  },
-  createPaymentPin(token: string, body: { otpId: string; otp: string; pin: string; confirmPin: string }) {
+  createPaymentPin(token: string, body: { password: string; pin: string; confirmPin: string }) {
     return request<{ hasPaymentPin: boolean }>("/businesses/security/pin/create", {
       method: "POST",
       token,
@@ -371,8 +443,7 @@ export const merchantApi = {
   changePaymentPin(
     token: string,
     body: {
-      otpId: string;
-      otp: string;
+      password: string;
       oldPin: string;
       newPin: string;
       confirmNewPin: string;

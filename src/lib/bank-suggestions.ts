@@ -82,6 +82,42 @@ const BANK_LOGO_CANDIDATES: Record<string, string[]> = {
   Kuda: ["kuda", "kuda microfinance bank"],
 };
 
+const BANK_LOGO_PATHS: Record<string, string> = {
+  "access bank": "/images/bank-logos/access bank.svg",
+  "access diamond": "/images/bank-logos/access(diamond) bank.svg",
+  "citibank": "/images/bank-logos/citty bank.svg",
+  "ecobank": "/images/bank-logos/ecobank.svg",
+  "fidelity": "/images/bank-logos/fidelity bank.svg",
+  "first bank": "/images/bank-logos/first bank of nigeria.svg",
+  "fcmb": "/images/bank-logos/fcmb.svg",
+  "first city monument": "/images/bank-logos/first city monument bank.svg",
+  "guaranty trust": "/images/bank-logos/gt bank.svg",
+  "gtbank": "/images/bank-logos/gt bank.svg",
+  "gt bank": "/images/bank-logos/gt bank.svg",
+  "heritage": "/images/bank-logos/heritage bank.svg",
+  "jaiz": "/images/bank-logos/jaiz bank.svg",
+  "taj": "/images/bank-logos/taj bank.svg",
+  "keystone": "/images/bank-logos/keystone bank.svg",
+  "providus": "/images/bank-logos/providus bank.svg",
+  "polaris": "/images/bank-logos/polaris bank.svg",
+  "stanbic ibtc": "/images/bank-logos/stanbic ibtc bank.svg",
+  "standard chartered": "/images/bank-logos/standard chartered bank.svg",
+  "sterling": "/images/bank-logos/sterling bank.svg",
+  "suntrust": "/images/bank-logos/suntrust bank.svg",
+  "union": "/images/bank-logos/union bank.svg",
+  "united bank for africa": "/images/bank-logos/united bank for africa.svg",
+  "uba": "/images/bank-logos/united bank for africa.svg",
+  "unity": "/images/bank-logos/unity bank.svg",
+  "wema": "/images/bank-logos/wema bank.svg",
+  "zenith": "/images/bank-logos/zenith bank.svg",
+  "safehaven": "/images/bank-logos/safehaven.svg",
+  "safe haven": "/images/bank-logos/safehaven.svg",
+  "opay": "/images/bank-logos/paycom.svg",
+  "paycom": "/images/bank-logos/paycom.svg",
+  "kuda": "/images/bank-logos/kuda.svg",
+  "kuda microfinance": "/images/bank-logos/kuda microfinance bank.svg",
+};
+
 function normalizeBankName(value: string) {
   return value
     .toLowerCase()
@@ -92,15 +128,16 @@ function normalizeBankName(value: string) {
 }
 
 export function getBankLogoUrl(bankName?: string | null, explicitLogoUrl?: string | null) {
-  if (explicitLogoUrl) {
-    return explicitLogoUrl;
-  }
-
   if (!bankName) {
     return null;
   }
 
   const normalized = normalizeBankName(bankName);
+  const directPath =
+    BANK_LOGO_PATHS[bankName.toLowerCase()] || BANK_LOGO_PATHS[normalized];
+  if (directPath) {
+    return directPath;
+  }
   const directCandidates = BANK_LOGO_CANDIDATES[bankName] || [];
   const candidates = [...directCandidates, normalized];
 
@@ -117,12 +154,6 @@ export function getBankLogoUrl(bankName?: string | null, explicitLogoUrl?: strin
   });
 
   if (!match) {
-    if (normalized.includes("safehaven")) return "/images/bank-logos/safehaven.svg";
-    if (normalized.includes("access")) return "/images/bank-logos/access bank.svg";
-    if (normalized.includes("guarant") || normalized.includes("trust") || normalized.includes("gt")) {
-      return "/images/bank-logos/gt bank.svg";
-    }
-    if (normalized.includes("uba")) return "/images/bank-logos/united bank for africa.svg";
     return null;
   }
 

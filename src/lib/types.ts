@@ -16,6 +16,15 @@ export type Business = {
   legalName?: string | null;
   emailAddress: string;
   hasPaymentPin?: boolean;
+  businessTierLevel?: 1 | 2 | 3;
+  currentTier?: "TIER_1" | "TIER_2" | "TIER_3";
+  tierLimits?: {
+    tier: 1 | 2 | 3;
+    key: "TIER_1" | "TIER_2" | "TIER_3";
+    name: string;
+    perTransactionLimit: number;
+    dailyLimit: number;
+  };
   currentRole?: "owner" | "admin" | "support" | "developer";
   currentUser?: {
     _id?: string;
@@ -122,6 +131,7 @@ export type ApiKeyEnvironment = {
 
 export type BusinessSession = {
   token: string;
+  refreshToken?: string;
   business: Business;
 };
 
@@ -134,6 +144,7 @@ export type RegistrationDraft = {
   contactFirstName?: string;
   contactLastName?: string;
   phoneNumber?: string;
+  taxIdentificationNumber?: string;
   website?: string;
   industry?: string;
   description?: string;
@@ -178,6 +189,7 @@ export type BusinessTransaction = {
   status: string;
   amount: number;
   currency: string;
+  category?: "payment_link" | "checkout" | "transfer" | "checkout_fee" | string | null;
   balanceBefore?: number | null;
   balanceAfter?: number | null;
   paymentMethod?: string | null;
@@ -190,12 +202,14 @@ export type BusinessTransaction = {
     name?: string | null;
     email?: string | null;
     phoneNumber?: string | null;
+    accountNumber?: string | null;
   };
   virtualAccount?: {
     accountNumber?: string | null;
     accountName?: string | null;
     bankName?: string | null;
   };
+  payload?: Record<string, unknown> | null;
 };
 
 export type BusinessSettlementAccount = {

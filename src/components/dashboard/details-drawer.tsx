@@ -10,6 +10,11 @@ export function DetailsDrawer({
   status,
   timestamp,
   fields,
+  primaryActionLabel = "Download Receipt",
+  onPrimaryAction,
+  primaryActionLoading = false,
+  secondaryActionLabel = "Refund Payment",
+  onSecondaryAction,
 }: {
   open: boolean;
   onClose: () => void;
@@ -18,6 +23,11 @@ export function DetailsDrawer({
   status: string;
   timestamp?: string | null;
   fields: Array<{ label: string; value: string | null | undefined }>;
+  primaryActionLabel?: string;
+  onPrimaryAction?: () => void;
+  primaryActionLoading?: boolean;
+  secondaryActionLabel?: string;
+  onSecondaryAction?: () => void;
 }) {
   if (!open) {
     return null;
@@ -61,11 +71,19 @@ export function DetailsDrawer({
         </div>
 
         <div className="mt-auto grid gap-5 pt-8">
-          <Button className="dashboard-black-button h-[52px] w-full rounded-[8px] text-[15px] font-bold">
-            Print Receipt
+          <Button
+            className="dashboard-black-button h-[52px] w-full rounded-[8px] text-[15px] font-bold"
+            onClick={onPrimaryAction}
+            loading={primaryActionLoading}
+          >
+            {primaryActionLabel}
           </Button>
-          <Button variant="secondary" className="h-[52px] w-full rounded-[8px] bg-[#f2f4f7] text-[15px] font-bold text-[#344054] hover:bg-[#e9eef4]">
-            Refund Payment
+          <Button
+            variant="secondary"
+            className="h-[52px] w-full rounded-[8px] bg-[#f2f4f7] text-[15px] font-bold text-[#344054] hover:bg-[#e9eef4]"
+            onClick={onSecondaryAction}
+          >
+            {secondaryActionLabel}
           </Button>
         </div>
       </aside>

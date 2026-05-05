@@ -1,7 +1,5 @@
 "use client";
 
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { Wordmark } from "@/components/brand/wordmark";
@@ -9,6 +7,7 @@ import { TransactionReceipt } from "@/components/checkout/transaction-receipt";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { downloadReceiptPdf } from "@/lib/receipt-pdf";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { merchantApi } from "@/lib/merchant-api";
 import type { CheckoutSession } from "@/lib/types";
@@ -265,26 +264,7 @@ export default function CheckoutPage() {
     setIsDownloadingReceipt(true);
 
     try {
-      if (typeof document !== "undefined" && "fonts" in document) {
-        await (document.fonts as FontFaceSet).ready;
-      }
-
-      const canvas = await html2canvas(receiptRef.current, {
-        backgroundColor: "#ffffff",
-        scale: 2,
-        useCORS: true,
-      });
-
-      const imageData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF({
-        orientation: "portrait",
-        unit: "px",
-        format: [canvas.width / 2, canvas.height / 2],
-        compress: true,
-      });
-
-      pdf.addImage(imageData, "PNG", 0, 0, canvas.width / 2, canvas.height / 2);
-      pdf.save(`${reference}-receipt.pdf`);
+      await downloadReceiptPdf(receiptRef.current, `${reference}-receipt.pdf`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Unable to download receipt.");
     } finally {

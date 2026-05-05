@@ -366,6 +366,30 @@ export function AuthOtpInput({
     onChange(next.join("").trimEnd());
   }
 
+  function applyDigits(startIndex: number, rawValue: string) {
+    const digits = rawValue.replace(/\D/g, "");
+
+    if (!digits) {
+      updateAt(startIndex, "");
+      return;
+    }
+
+    const next = chars.slice();
+
+    digits
+      .slice(0, Math.max(0, 6 - startIndex))
+      .split("")
+      .forEach((digit, offset) => {
+        next[startIndex + offset] = digit;
+      });
+
+    onChange(next.join("").trimEnd());
+
+    const nextFocusIndex = Math.min(startIndex + digits.length, 5);
+    const nextInput = document.getElementById(`auth-otp-${nextFocusIndex}`);
+    nextInput?.focus();
+  }
+
   return (
     <div className="flex flex-wrap gap-8">
       {chars.map((char, index) => (
@@ -375,15 +399,28 @@ export function AuthOtpInput({
           value={char}
           inputMode="numeric"
           maxLength={1}
+          autoComplete={index === 0 ? "one-time-code" : "off"}
           onChange={(event) => {
-            const nextChar = event.target.value.replace(/\D/g, "").slice(-1);
+            const nextValue = event.target.value;
+            const digits = nextValue.replace(/\D/g, "");
+
+            if (digits.length > 1) {
+              applyDigits(index, digits);
+              return;
+            }
+
+            const nextChar = digits.slice(-1);
             updateAt(index, nextChar);
-            if (nextChar) {
+            if (nextChar && index < 5) {
               const nextInput = document.getElementById(
                 `auth-otp-${index + 1}`,
               );
               nextInput?.focus();
             }
+          }}
+          onPaste={(event) => {
+            event.preventDefault();
+            applyDigits(index, event.clipboardData.getData("text"));
           }}
           onKeyDown={(event) => {
             if (event.key === "Backspace" && !chars[index] && index > 0) {

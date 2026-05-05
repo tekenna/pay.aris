@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import toast from "react-hot-toast";
+import { TransactionReceipt } from "@/components/checkout/transaction-receipt";
 import { DetailsDrawer } from "@/components/dashboard/details-drawer";
 import { MerchantShell } from "@/components/dashboard/merchant-shell";
 import {
@@ -8,13 +10,14 @@ import {
   getTransactionType,
   TransactionsTable,
 } from "@/components/dashboard/transactions-table";
-import { useBusinessSession } from "@/store/business-session-provider";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Pagination } from "@/components/ui/pagination";
 import { merchantApi } from "@/lib/merchant-api";
+import { downloadReceiptPdf } from "@/lib/receipt-pdf";
 import type { BusinessTransaction } from "@/lib/types";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { useBusinessSession } from "@/store/business-session-provider";
 
 export default function TransactionsPage() {
   const { session } = useBusinessSession();
@@ -24,6 +27,8 @@ export default function TransactionsPage() {
   const [pages, setPages] = useState(1);
   const [status, setStatus] = useState("");
   const [selected, setSelected] = useState<BusinessTransaction | null>(null);
+  const [isDownloadingReceipt, setIsDownloadingReceipt] = useState(false);
+  const receiptRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     async function loadTransactions() {
@@ -67,6 +72,65 @@ export default function TransactionsPage() {
         : [],
     [selected],
   );
+
+  const selectedTransactionType = selected ? getTransactionType(selected) : "credit";
+  const receiptRecipientName = selected
+    ? selectedTransactionType === "debit"
+      ? selected.virtualAccount?.accountName ||
+        selected.customer?.name ||
+        "Recipient"
+      : selected.virtualAccount?.accountName ||
+        session?.business.businessName ||
+        "Aris Pay Merchant"
+    : "--";
+  const receiptBankName = selected
+    ? selectedTransactionType === "debit"
+      ? selected.virtualAccount?.bankName || "--"
+      : selected.virtualAccount?.bankName ||
+        session?.business.safehaven?.bankName ||
+        "Aris Pay"
+    : "--";
+  const receiptAccountNumber = selected
+    ? selected.virtualAccount?.accountNumber || "--"
+    : "--";
+  const receiptSourceBankName = selected
+    ? selectedTransactionType === "debit"
+      ? session?.business.safehaven?.bankName ||
+        session?.business.safehavenCheckout?.bankName ||
+        "Aris Pay"
+      : selected.payload?.bankName?.toString() ||
+        selected.customer?.name ||
+        "Customer"
+    : "--";
+  const receiptSourceAccountName = selected
+    ? selectedTransactionType === "debit"
+      ? selected.customer?.accountNumber ||
+        session?.business.safehaven?.accountNumber ||
+        "--"
+      : selected.customer?.name ||
+        selected.customer?.email ||
+        "Customer"
+    : "--";
+
+  async function handleDownloadReceipt() {
+    if (!selected || !receiptRef.current) {
+      return;
+    }
+
+    setIsDownloadingReceipt(true);
+    try {
+      await downloadReceiptPdf(
+        receiptRef.current,
+        `${selected.reference}-receipt.pdf`,
+      );
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Unable to download receipt.",
+      );
+    } finally {
+      setIsDownloadingReceipt(false);
+    }
+  }
 
   return (
     <MerchantShell title="Transactions">
@@ -125,7 +189,34 @@ export default function TransactionsPage() {
         status={selected?.status || "pending"}
         timestamp={selected?.paidAt || selected?.createdAt}
         fields={details}
+        primaryActionLabel="Download Receipt"
+        onPrimaryAction={() => void handleDownloadReceipt()}
+        primaryActionLoading={isDownloadingReceipt}
+        secondaryActionLabel="Close"
+        onSecondaryAction={() => setSelected(null)}
       />
+
+      {selected ? (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none fixed left-[-200vw] top-0 opacity-0"
+        >
+          <div ref={receiptRef}>
+            <TransactionReceipt
+              amount={selected.amount}
+              paidAt={selected.paidAt || selected.createdAt}
+              status={selected.status}
+              sessionId={selected.providerReference || selected.reference}
+              recipientName={receiptRecipientName}
+              bankName={receiptBankName}
+              accountNumber={receiptAccountNumber}
+              sourceBankName={receiptSourceBankName}
+              sourceAccountName={receiptSourceAccountName}
+              narration={selected.narration || selected.reference}
+            />
+          </div>
+        </div>
+      ) : null}
     </MerchantShell>
   );
 }

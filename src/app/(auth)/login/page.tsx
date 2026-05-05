@@ -57,7 +57,7 @@ export default function LoginPage() {
     <AuthGuard>
       <AuthPageShell>
         <p className="mt-[100px] text-[20px] font-normal">
-          Sign in to to you account.
+          Sign in to you account.
         </p>
 
         <form className="grid gap-6 mt-8" onSubmit={handleSubmit}>
