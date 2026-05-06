@@ -189,6 +189,7 @@ export type BusinessTransaction = {
   status: string;
   amount: number;
   currency: string;
+  direction?: "credit" | "debit" | string | null;
   category?: "payment_link" | "checkout" | "transfer" | "checkout_fee" | string | null;
   balanceBefore?: number | null;
   balanceAfter?: number | null;

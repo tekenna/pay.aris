@@ -7,6 +7,10 @@ function truncateValue(value: string | null | undefined, visible = 24) {
 }
 
 export function getTransactionType(transaction: BusinessTransaction) {
+  if (transaction.direction === "credit" || transaction.direction === "debit") {
+    return transaction.direction;
+  }
+
   const before = Number(transaction.balanceBefore);
   const after = Number(transaction.balanceAfter);
 
