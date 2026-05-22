@@ -1,10 +1,21 @@
 import type { Metadata } from "next";
+import { Archivo, Rubik } from "next/font/google";
 import "./globals.css";
 import { AppProviders } from "@/store/app-providers";
 import { Toaster } from "@/components/ui/toaster";
 import { getSiteUrl, siteDescription, siteName } from "@/app/seo";
 
 const siteUrl = getSiteUrl();
+const rubik = Rubik({
+  subsets: ["latin"],
+  variable: "--font-rubik",
+  display: "swap",
+});
+const archivo = Archivo({
+  subsets: ["latin"],
+  variable: "--font-archivo",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   metadataBase: siteUrl,
@@ -66,8 +77,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body suppressHydrationWarning>
+    <html lang="en" className={`${rubik.variable} ${archivo.variable}`}>
+      <body suppressHydrationWarning className="font-app">
         <AppProviders>{children}</AppProviders>
         <Toaster />
       </body>

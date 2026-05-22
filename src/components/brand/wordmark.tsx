@@ -15,6 +15,7 @@ export function Wordmark({
         alt="Aris Wallex"
         width={251}
         height={53}
+        loading="eager"
         className={cn(
           compact ? "h-9 w-9 object-contain object-left" : "h-[34px] w-[162px] object-contain object-left",
           !inverted && "logo-on-light",

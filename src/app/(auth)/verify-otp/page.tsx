@@ -10,7 +10,7 @@ import {
   AuthPrimaryButton,
   AuthSplitShell,
 } from "@/features/auth/components/auth-shell";
-import { merchantApi } from "@/lib/merchant-api";
+import { authService } from "@/services/auth.service";
 import { useBusinessSession } from "@/store/business-session-provider";
 
 export default function VerifyOtpPage() {
@@ -35,8 +35,14 @@ export default function VerifyOtpPage() {
     setSubmitting(true);
 
     try {
-      const response = await merchantApi.verifyOtp(registrationDraft.otpId, otp);
-      if ((response.statusCode !== 200 && response.statusCode !== 201) || !response.data?.token) {
+      const response = await authService.verifyOtp(
+        registrationDraft.otpId,
+        otp,
+      );
+      if (
+        (response.statusCode !== 200 && response.statusCode !== 201) ||
+        !response.data?.token
+      ) {
         toast.error(response.message || "Unable to verify OTP.");
         return;
       }
@@ -48,7 +54,9 @@ export default function VerifyOtpPage() {
       toast.success("Email verified.");
       router.push("/create-account");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Unable to verify OTP.");
+      toast.error(
+        error instanceof Error ? error.message : "Unable to verify OTP.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -59,7 +67,7 @@ export default function VerifyOtpPage() {
       return;
     }
 
-    const response = await merchantApi.resendOtp(registrationDraft.otpId);
+    const response = await authService.resendOtp(registrationDraft.otpId);
     if (response.statusCode === 200 || response.statusCode === 201) {
       toast.success(response.message || "Verification code resent.");
     } else {
@@ -70,18 +78,15 @@ export default function VerifyOtpPage() {
   return (
     <AuthGuard>
       <AuthSplitShell
-        title={
-          <>
-            OTP Sent to{" "}
-            <span className="text-[#057f4a]">
-              {registrationDraft.emailAddress || "abdullkhatab@example.com"}
-            </span>
-          </>
-        }
+        title={<> OTP verification</>}
         description={
           <>
-            <div>Please check your inbox for the one-time password</div>
-            <div>(OTP) and enter it below to proceed.</div>
+            <div>
+              Please enter the 6 digit verification code sent to{" "}
+              <span className="text-[#057f4a]">
+                {registrationDraft.emailAddress}
+              </span>
+            </div>
           </>
         }
         illustration="security"
@@ -90,9 +95,13 @@ export default function VerifyOtpPage() {
         <div className="grid gap-9">
           <AuthOtpInput value={otp} onChange={setOtp} />
 
-          <div className="text-[15px] leading-7 text-[#667085]">
+          <div className="text-[14px] leading-6 text-[#667085] sm:text-[15px] sm:leading-7">
             Didn&apos;t recieve the OTP?{" "}
-            <button type="button" onClick={handleResend} className="font-semibold text-[#0a9550]">
+            <button
+              type="button"
+              onClick={handleResend}
+              className="font-semibold text-[#0a9550]"
+            >
               Resend Code
             </button>{" "}
             or{" "}
@@ -101,14 +110,14 @@ export default function VerifyOtpPage() {
             </a>
           </div>
 
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-col-reverse gap-4 sm:flex-row sm:items-center sm:justify-between">
             <AuthBackButton href="/verify-email" />
             <AuthPrimaryButton
               type="button"
               onClick={handleVerify}
               disabled={!isFormValid}
               loading={submitting}
-              className="w-[176px]"
+              className="w-full sm:w-[176px]"
             >
               Continue
             </AuthPrimaryButton>

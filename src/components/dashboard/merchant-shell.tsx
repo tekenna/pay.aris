@@ -3,36 +3,41 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import type { IconType } from "react-icons";
+import {
+  LuArrowLeftRight,
+  LuBadgeDollarSign,
+  LuCode,
+  LuLayoutDashboard,
+  LuQrCode,
+  LuSettings2,
+  LuWalletCards,
+} from "react-icons/lu";
 import { Wordmark } from "@/components/brand/wordmark";
 import { useBusinessSession } from "@/store/business-session-provider";
 import { Button } from "@/components/ui/button";
 import {
-  AccountsIcon,
   BellIcon,
   ChevronDown,
-  DashboardIcon,
-  DevelopersIcon,
   MenuIcon,
-  PaymentIcon,
   SearchIcon,
   SettingsIcon,
-  TransactionsIcon,
 } from "@/components/ui/icons";
 import { cn, getInitials } from "@/lib/utils";
 
 const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: DashboardIcon },
-  { href: "/dashboard/accounts", label: "Accounts", icon: AccountsIcon },
-  { href: "/dashboard/payment", label: "Payment", icon: PaymentIcon },
-  { href: "/dashboard/checkout", label: "Checkout", icon: PaymentIcon },
+  { href: "/dashboard", label: "Dashboard", icon: LuLayoutDashboard },
+  { href: "/dashboard/accounts", label: "Accounts", icon: LuWalletCards },
+  { href: "/dashboard/payment", label: "Payment", icon: LuBadgeDollarSign },
+  { href: "/dashboard/checkout", label: "Checkout", icon: LuQrCode },
   {
     href: "/dashboard/transactions",
     label: "Transactions",
-    icon: TransactionsIcon,
+    icon: LuArrowLeftRight,
   },
-  { href: "/dashboard/developers", label: "Developers", icon: DevelopersIcon },
-  { href: "/dashboard/settings", label: "Settings", icon: SettingsIcon },
-];
+  { href: "/dashboard/developers", label: "Developers", icon: LuCode },
+  { href: "/dashboard/settings", label: "Settings", icon: LuSettings2 },
+] satisfies Array<{ href: string; label: string; icon: IconType }>;
 
 const OWNER_ADMIN_ROLES = new Set(["owner", "admin"]);
 const DEVELOPER_VISIBLE_ROLES = new Set(["owner", "admin", "developer"]);
@@ -110,18 +115,18 @@ export function MerchantShell({
   });
 
   return (
-    <div className="h-screen bg-[var(--background)] overflow-hidden text-slate-900 lg:grid lg:grid-cols-[260px_minmax(0,1fr)]">
+    <div className="min-h-screen overflow-x-hidden bg-[var(--background)] text-slate-900 lg:grid lg:h-screen lg:grid-cols-[280px_minmax(0,1fr)] lg:overflow-hidden">
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-40 w-[260px] bg-[#00492c] text-white transition lg:static h-screen",
+          "fixed inset-y-0 left-0 z-40 flex h-[100svh] w-[280px] flex-col bg-[var(--brand-panel)] text-white transition lg:static lg:h-screen",
           mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
         )}
       >
-        <div className="flex h-20 items-center px-6">
+        <div className="flex h-22 items-center px-7 pb-2 pt-5">
           <Wordmark inverted />
         </div>
 
-        <nav className="grid pt-8">
+        <nav className="grid gap-1 px-2 pt-7">
           {visibleNavItems.map((item) => {
             const Icon = item.icon;
             const active =
@@ -136,25 +141,49 @@ export function MerchantShell({
                 href={item.href}
                 onClick={() => setMobileOpen(false)}
                 className={cn(
-                  "flex h-14 items-center gap-3 px-8 text-[14px] font-semibold tracking-[0.01em] transition",
+                  "group flex h-[52px] items-center gap-3 rounded-[8px] px-5 text-[15px] font-medium tracking-[0.01em] transition",
                   active
-                    ? "bg-[#e9f7ef] text-[#00884f]"
-                    : "bg-[#00492c] text-white hover:bg-[#075b38]",
+                    ? "bg-[image:var(--brand-panel-active)] text-white shadow-[0_16px_30px_rgba(0,83,48,0.24)]"
+                    : "bg-transparent text-white/88 hover:bg-[var(--brand-panel-soft)] hover:text-white",
                 )}
               >
                 <Icon
                   className={cn(
-                    "h-[22px] w-[22px]",
-                    active ? "text-[#00884f]" : "text-white",
+                    "h-[20px] w-[20px] transition-transform duration-300 group-hover:scale-110",
+                    active
+                      ? "animate-[sidebarIconFloat_3s_ease-in-out_infinite] text-white"
+                      : "text-white/88 group-hover:-translate-y-0.5",
                   )}
                 />
-                <span className={active ? "text-[#00884f]" : "text-white"}>
+                <span className={active ? "text-white" : "text-white/88"}>
                   {item.label}
                 </span>
               </Link>
             );
           })}
         </nav>
+
+        <div className="mt-auto px-4 pb-5 pt-6">
+          <div className="rounded-[8px] bg-[image:var(--brand-panel-active)] p-4 shadow-[0_20px_38px_rgba(0,0,0,0.28)]">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-sm font-semibold text-[var(--brand-panel)]">
+                {getInitials(
+                  session.business.businessName ||
+                    session.business.contactFirstName ||
+                    "A",
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[15px] font-semibold text-white">
+                  {session.business.businessName || "Aris Merchant"}
+                </p>
+                <p className="truncate text-sm text-white/68">
+                  {session.business.emailAddress}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
       </aside>
 
       {mobileOpen ? (
@@ -166,8 +195,8 @@ export function MerchantShell({
         />
       ) : null}
 
-      <div className="min-w-0 h-screen overflow-y-auto">
-        <header className="sticky top-0 z-20 flex h-20 items-center gap-4 border-b border-slate-200 bg-white px-4 sm:px-5">
+      <div className="min-w-0 lg:h-screen lg:overflow-y-auto">
+        <header className="sticky top-0 z-20 flex h-[86px] items-center gap-3 border-b border-[var(--border)] bg-white px-4 sm:gap-4 sm:px-6 lg:px-8">
           <button
             type="button"
             onClick={() => setMobileOpen(true)}
@@ -176,20 +205,20 @@ export function MerchantShell({
             <MenuIcon />
           </button>
 
-          <div className="relative hidden w-[300px] md:block">
+          <div className="relative hidden w-full max-w-[360px] md:block">
             <SearchIcon className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#98a2b3]" />
             <input
               placeholder="Search by Name"
-              className="h-12 w-full rounded-[10px] border border-transparent bg-[#f5f7f9] pl-12 pr-4 text-sm font-medium text-slate-700 outline-none placeholder:text-[#8d99a8] focus:border-emerald-100 focus:bg-white"
+              className="h-12 w-full rounded-[8px] border border-[var(--border)] bg-[#fbfcfd] pl-12 pr-4 text-sm font-medium text-slate-700 outline-none placeholder:text-[#8d99a8] focus:border-[var(--brand-soft-2)] focus:bg-white"
             />
           </div>
 
           <div className="flex-1" />
 
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-5">
             <button
               type="button"
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-emerald-100 bg-emerald-50 text-emerald-600"
+              className="flex h-11 w-11 items-center justify-center rounded-[8px] border border-[var(--border)] bg-white text-[var(--brand)]"
             >
               <BellIcon />
             </button>
@@ -198,11 +227,11 @@ export function MerchantShell({
               <button
                 type="button"
                 onClick={() => setProfileOpen((current) => !current)}
-                className="flex h-[45px] items-center gap-3 bg-white transition"
+                className="flex h-[48px] items-center gap-3 bg-white transition"
                 aria-expanded={profileOpen}
                 aria-haspopup="menu"
               >
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 font-semibold text-[var(--brand)]">
+                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#f4f6f8] font-semibold text-[#344054]">
                   {getInitials(
                     session.business.businessName ||
                       session.business.contactFirstName ||
@@ -232,7 +261,7 @@ export function MerchantShell({
                 >
                   <div className="border-b border-slate-100 p-4">
                     <div className="flex items-start gap-3">
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-100 font-semibold text-[var(--brand)]">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#f4f6f8] font-semibold text-[#344054]">
                         {getInitials(
                           session.business.businessName ||
                             session.business.contactFirstName ||
@@ -246,7 +275,7 @@ export function MerchantShell({
                         <p className="mt-1 truncate text-xs text-slate-500">
                           {session.business.emailAddress}
                         </p>
-                        <p className="mt-2 text-xs font-medium capitalize text-emerald-700">
+                        <p className="mt-2 text-xs font-medium capitalize text-[var(--brand)]">
                           {session.business.status || "pending"} account
                         </p>
                       </div>
@@ -291,19 +320,30 @@ export function MerchantShell({
           </div>
         </header>
 
-        <main className="px-4 py-10 sm:px-10 flex-1 overflow-y-auto">
-          <div className="mb-12 flex flex-wrap items-center justify-between gap-4">
-            <h1 className="text-[20px] font-bold tracking-[0.01em] text-slate-950">
-              {title}
-            </h1>
-            {actions}
-          </div>
+        <main className="px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-8">
+          {title || actions ? (
+            <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+              <div>
+                {title ? (
+                  <h1 className="text-[30px] font-semibold tracking-[-0.03em] text-[#1f2937]">
+                    {title}
+                  </h1>
+                ) : null}
+                {title ? (
+                  <p className="mt-2 text-sm text-[#98a2b3]">
+                    Manage and monitor your Aris Pay workspace.
+                  </p>
+                ) : null}
+              </div>
+              {actions ? <div className="flex flex-wrap gap-3">{actions}</div> : null}
+            </div>
+          ) : null}
           {children}
         </main>
       </div>
       {shouldBlockForCompliance ? (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/35 px-4 backdrop-blur-[1px]">
-          <div className="w-full max-w-[440px] rounded-[14px] bg-white p-7 text-center shadow-[0_24px_80px_rgba(15,23,42,0.28)]">
+          <div className="w-full max-w-[440px] rounded-[8px] bg-white p-5 text-center shadow-[0_24px_80px_rgba(15,23,42,0.28)] sm:p-7">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#e8f6ef] text-[#0a9550]">
               <SettingsIcon className="h-7 w-7" />
             </div>

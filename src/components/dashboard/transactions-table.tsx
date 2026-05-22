@@ -78,8 +78,8 @@ function TransactionTypeBadge({ type }: { type: "credit" | "debit" }) {
     <span
       className={
         type === "credit"
-          ? "inline-flex rounded-[4px] bg-[#eaf4ff] px-2 py-1 text-[12px] font-medium text-[#0066c9]"
-          : "inline-flex rounded-[4px] bg-[#fff0f0] px-2 py-1 text-[12px] font-medium text-[#ff2323]"
+          ? "inline-flex rounded-[6px] bg-[#eaf8ef] px-2.5 py-1 text-[12px] font-medium text-[#0a9251]"
+          : "inline-flex rounded-[6px] bg-[#fff1f2] px-2.5 py-1 text-[12px] font-medium text-[#d92d20]"
       }
     >
       {type === "credit" ? "Credit" : "Debit"}
@@ -89,7 +89,7 @@ function TransactionTypeBadge({ type }: { type: "credit" | "debit" }) {
 
 function TransactionCategoryBadge({ category }: { category: string }) {
   return (
-    <span className="inline-flex rounded-[999px] bg-[#f2f4f7] px-3 py-1 text-[12px] font-semibold text-[#344054]">
+    <span className="inline-flex rounded-[6px] bg-[#f2f4f7] px-3 py-1 text-[12px] font-semibold text-[#344054]">
       {category}
     </span>
   );
@@ -108,16 +108,16 @@ export function TransactionsTable({
 }: TransactionsTableProps) {
   return (
     <div className="overflow-x-auto">
-      <table className="min-w-full text-left text-sm">
-        <thead className="bg-[#f7f9fb] text-[11px] uppercase tracking-[0.12em] text-[#667085]">
+      <table className="min-w-full border-separate border-spacing-0 text-left text-sm">
+        <thead className="bg-[#eef2f6] text-[12px] font-semibold text-[#101828]">
           <tr>
-            <th className="px-4 py-4">Date</th>
-            <th className="px-4 py-4">Reference</th>
-            <th className="px-4 py-4">Narration</th>
-            <th className="px-4 py-4">Category</th>
-            <th className="px-4 py-4">Type</th>
-            <th className="px-4 py-4 text-right">Amount</th>
-            <th className="px-4 py-4 text-right">Balance</th>
+            <th className="px-6 py-5">Date</th>
+            <th className="px-6 py-5">Reference</th>
+            <th className="px-6 py-5">Narration</th>
+            <th className="px-6 py-5">Category</th>
+            <th className="px-6 py-5">Type</th>
+            <th className="px-6 py-5 text-right">Amount</th>
+            <th className="px-6 py-5 text-right">Balance</th>
           </tr>
         </thead>
         <tbody>
@@ -128,18 +128,18 @@ export function TransactionsTable({
             return (
               <tr
                 key={item._id}
-                className="cursor-pointer border-b border-slate-100 text-[15px] font-medium text-[#667085] hover:bg-slate-50"
+                className="cursor-pointer border-b border-[var(--border)] text-[14px] font-medium text-[#667085] transition hover:bg-[#fbfcfd]"
                 onClick={() => onRowClick?.(item)}
               >
-                <td className="whitespace-nowrap px-4 py-7">
+                <td className="whitespace-nowrap border-b border-[var(--border)] px-6 py-6">
                   {formatDate(item.createdAt)}
                 </td>
-                <td className="max-w-[220px] px-4 py-7">
+                <td className="max-w-[220px] border-b border-[var(--border)] px-6 py-6">
                   <span className="block truncate" title={item.reference}>
                     {truncateValue(item.reference, 26)}
                   </span>
                 </td>
-                <td className="max-w-[280px] px-4 py-7">
+                <td className="max-w-[280px] border-b border-[var(--border)] px-6 py-6">
                   <span
                     className="block truncate"
                     title={item.narration || undefined}
@@ -147,16 +147,16 @@ export function TransactionsTable({
                     {truncateValue(item.narration, 30)}
                   </span>
                 </td>
-                <td className="px-4 py-7">
+                <td className="border-b border-[var(--border)] px-6 py-6">
                   <TransactionCategoryBadge category={transactionCategory} />
                 </td>
-                <td className="px-4 py-7">
+                <td className="border-b border-[var(--border)] px-6 py-6">
                   <TransactionTypeBadge type={transactionType} />
                 </td>
-                <td className="whitespace-nowrap px-4 py-7 text-right font-bold text-[#344054]">
+                <td className="whitespace-nowrap border-b border-[var(--border)] px-6 py-6 text-right font-bold text-[#344054]">
                   {formatCurrency(item.amount, item.currency)}
                 </td>
-                <td className="whitespace-nowrap px-4 py-7 text-right font-bold text-[#344054]">
+                <td className="whitespace-nowrap border-b border-[var(--border)] px-6 py-6 text-right font-bold text-[#344054]">
                   {formatCurrency(item.balanceAfter, item.currency)}
                 </td>
               </tr>

@@ -71,3 +71,25 @@ export function getInitials(value: string | null | undefined) {
 export function sleep(ms: number) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
+
+export function downloadCsvFile(filename: string, rows: string[][]) {
+  const csv = rows
+    .map((row) =>
+      row
+        .map((value) => {
+          const normalized = String(value ?? "");
+          const escaped = normalized.replace(/"/g, '""');
+          return /[",\n]/.test(escaped) ? `"${escaped}"` : escaped;
+        })
+        .join(","),
+    )
+    .join("\n");
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  window.URL.revokeObjectURL(url);
+}

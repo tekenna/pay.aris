@@ -15,6 +15,5 @@ export default function CheckoutReferenceLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return children;
+  return <div className="font-app">{children}</div>;
 }
-

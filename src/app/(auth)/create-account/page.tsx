@@ -13,7 +13,7 @@ import {
   AuthTextInput,
 } from "@/features/auth/components/auth-shell";
 import stateCities from "../../../../public/state-cities.json";
-import { merchantApi } from "@/lib/merchant-api";
+import { authService } from "@/services/auth.service";
 import { useBusinessSession } from "@/store/business-session-provider";
 
 type NigerianState = {
@@ -167,7 +167,7 @@ export default function CreateAccountPage() {
             setSubmitting(true);
 
             try {
-              const response = await merchantApi.registerBusiness({
+              const response = await authService.registerBusiness({
                 token: registrationDraft.token,
                 businessName: form.businessName,
                 contactFirstName: form.contactFirstName,

@@ -10,7 +10,7 @@ import {
   AuthSplitShell,
   AuthTextInput,
 } from "@/features/auth/components/auth-shell";
-import { merchantApi } from "@/lib/merchant-api";
+import { authService } from "@/services/auth.service";
 import { useBusinessSession } from "@/store/business-session-provider";
 
 export default function VerifyEmailPage() {
@@ -30,7 +30,7 @@ export default function VerifyEmailPage() {
     setSubmitting(true);
 
     try {
-      const response = await merchantApi.verifyEmail(emailAddress);
+      const response = await authService.verifyEmail(emailAddress);
       if (response.statusCode !== 200 || !response.data?.otpId) {
         toast.error(response.message || "Unable to verify email.");
         return;

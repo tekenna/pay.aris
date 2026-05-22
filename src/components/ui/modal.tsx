@@ -26,7 +26,7 @@ export function Modal({
       <div className="flex min-h-full items-start justify-center">
         <div
           className={cn(
-            "my-auto w-full rounded-[32px] bg-white p-7 shadow-2xl",
+            "my-auto w-full rounded-[8px] bg-white p-5 shadow-2xl sm:p-6",
             maxWidthClassName || "max-w-xl",
             className,
           )}
@@ -41,7 +41,7 @@ export function Modal({
             <button
               type="button"
               onClick={onClose}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition hover:bg-slate-200"
+              className="flex h-10 w-10 items-center justify-center rounded-[8px] bg-slate-100 text-slate-500 transition hover:bg-slate-200"
             >
               x
             </button>

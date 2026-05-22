@@ -11,9 +11,9 @@ type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 const sizeClass = {
-  sm: "h-9 rounded-[8px] px-4 text-[13px]",
-  md: "h-10 rounded-[8px] px-5 text-[14px]",
-  lg: "h-[45px] rounded-[8px] px-7 text-[15px]",
+  sm: "h-9 rounded-[6px] px-4 text-[13px]",
+  md: "h-11 rounded-[6px] px-5 text-[14px]",
+  lg: "h-[46px] rounded-[8px] px-6 text-[15px]",
 };
 
 export function Button({
@@ -34,13 +34,14 @@ export function Button({
       type={type}
       disabled={disabled || loading}
       className={cn(
-        "inline-flex items-center justify-center gap-2 font-semibold transition disabled:cursor-not-allowed disabled:opacity-55",
+        "inline-flex items-center justify-center gap-2 whitespace-nowrap font-semibold transition disabled:cursor-not-allowed disabled:opacity-55",
         sizeClass[size],
-        variant === "primary" && "bg-[#0a9550] text-white hover:bg-[#087d44]",
+        variant === "primary" &&
+          "bg-[var(--brand)] text-white shadow-[0_10px_22px_rgba(0,83,48,0.18)] hover:bg-[var(--brand-deep)]",
         variant === "secondary" &&
-          "border border-transparent bg-[#f3f5f8] text-[#344054] hover:bg-[#e9eef4]",
+          "border border-[var(--border)] bg-[var(--surface-muted)] text-[#344054] hover:bg-[#e7ecf2]",
         variant === "outline" &&
-          "border border-[#51ad82] bg-white text-[#006d3b] hover:bg-[#effaf4]",
+          "border border-[var(--border)] bg-white text-[var(--brand)] hover:border-[var(--brand-soft-2)] hover:bg-[#f8fbf9]",
         variant === "ghost" &&
           "bg-transparent text-[#667085] hover:bg-[#f3f5f8] hover:text-[#344054]",
         variant === "danger" && "bg-[#ff3b47] text-white hover:bg-[#e52e39]",

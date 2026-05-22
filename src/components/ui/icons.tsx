@@ -104,6 +104,24 @@ export function ArrowRightIcon(props: IconProps) {
   );
 }
 
+export function ArrowUpRightIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M7 17 17 7" />
+      <path d="M9 7h8v8" />
+    </Svg>
+  );
+}
+
+export function ArrowDownLeftIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M17 7 7 17" />
+      <path d="M15 17H7V9" />
+    </Svg>
+  );
+}
+
 export function SpinnerIcon(props: IconProps) {
   return (
     <svg
@@ -244,6 +262,27 @@ export function ChevronDown(props: IconProps) {
   return (
     <Svg {...props}>
       <path d="m6 9 6 6 6-6" />
+    </Svg>
+  );
+}
+
+export function CalendarIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <rect x="4" y="5" width="16" height="15" rx="2" />
+      <path d="M8 3v4" />
+      <path d="M16 3v4" />
+      <path d="M4 9h16" />
+    </Svg>
+  );
+}
+
+export function FilterIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M4 6h16" />
+      <path d="M7 12h10" />
+      <path d="M10 18h4" />
     </Svg>
   );
 }

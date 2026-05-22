@@ -6,17 +6,17 @@ export function StatusBadge({ value }: { value: string | null | undefined }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold capitalize",
+        "inline-flex min-h-8 items-center rounded-[6px] px-3 py-1 text-xs font-semibold capitalize",
         normalized.includes("success") ||
           normalized.includes("active") ||
           normalized.includes("completed") ||
           normalized === "ok"
-          ? "bg-emerald-50 text-emerald-600"
+          ? "bg-emerald-50 text-emerald-700"
           : normalized.includes("pending")
-            ? "bg-amber-50 text-amber-600"
+            ? "bg-amber-50 text-amber-700"
             : normalized.includes("failed") || normalized.includes("rejected")
-              ? "bg-rose-50 text-rose-600"
-              : "bg-slate-100 text-slate-600",
+              ? "bg-rose-50 text-rose-700"
+              : "bg-slate-100 text-slate-700",
       )}
     >
       {String(value || "Unknown").replaceAll("_", " ")}

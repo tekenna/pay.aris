@@ -56,7 +56,7 @@ function FooterSocialLink({
 
 export default function HomePage() {
   return (
-    <main className="min-h-screen overflow-x-hidden bg-white text-black">
+    <main className="font-landing min-h-screen overflow-x-hidden bg-white text-black">
       <section className="relative overflow-hidden bg-[#eefaf4]">
         <div className="absolute inset-0">
           <Image

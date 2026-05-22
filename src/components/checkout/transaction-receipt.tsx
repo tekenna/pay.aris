@@ -96,7 +96,7 @@ export function TransactionReceipt({
 
   return (
     <div
-      className="relative min-h-[842px] w-[595px] overflow-hidden bg-white font-sans"
+      className="relative min-h-[842px] w-[595px] overflow-hidden bg-white font-app"
       style={{ color: TEXT }}
     >
       <div className="absolute inset-0 opacity-[0.13] [background-image:radial-gradient(circle_at_16%_14%,transparent_0_48px,#e7edf4_49px_50px,transparent_51px),radial-gradient(circle_at_75%_28%,transparent_0_62px,#e7edf4_63px_64px,transparent_65px),radial-gradient(circle_at_53%_73%,transparent_0_76px,#e7edf4_77px_78px,transparent_79px),radial-gradient(circle_at_18%_88%,transparent_0_54px,#e7edf4_55px_56px,transparent_57px)]" />

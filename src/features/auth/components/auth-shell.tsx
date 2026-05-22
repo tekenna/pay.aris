@@ -61,7 +61,7 @@ export function AuthSocialButton({
     <button
       type="button"
       aria-label={label}
-      className="flex h-[45px] w-[45px] items-center justify-center rounded-full bg-white text-black shadow-[0_14px_30px_rgba(0,0,0,0.18)] transition hover:scale-105"
+      className="flex h-[45px] w-[45px] items-center justify-center rounded-[8px] bg-white text-black shadow-[0_14px_30px_rgba(0,0,0,0.18)] transition hover:scale-105"
     >
       <span className={className}>{children}</span>
     </button>
@@ -70,9 +70,9 @@ export function AuthSocialButton({
 
 export function AuthMarketingPanel() {
   return (
-    <aside className="relative hidden min-h-[calc(100vh-48px)] overflow-hidden rounded-[28px] bg-[#4db381] px-10 py-12 text-white lg:block">
-      <div className="absolute right-0 top-0 h-[76px] w-[104px] rounded-bl-[28px] bg-black" />
-      <div className="absolute right-0 top-[76px] h-[78px] w-[90px] rounded-tr-[28px] bg-[#4db381]" />
+    <aside className="relative hidden min-h-[calc(100svh-40px)] overflow-hidden rounded-[8px] bg-[#4db381] px-8 py-10 text-white lg:block xl:px-10 xl:py-12">
+      <div className="absolute right-0 top-0 h-[76px] w-[104px] rounded-bl-[8px] bg-black" />
+      <div className="absolute right-0 top-[76px] h-[78px] w-[90px] rounded-tr-[8px] bg-[#4db381]" />
 
       <div className="relative z-10 max-w-[550px]">
         <h2 className="text-[44px] font-semibold leading-[1.32] tracking-[-0.01em]">
@@ -108,8 +108,8 @@ export function AuthMarketingPanel() {
         </div>
       </div>
 
-      <div className="absolute bottom-8 left-8 right-8 z-10 rounded-[28px] bg-white px-10 py-10 text-[#17161b]">
-        <div className="absolute -right-4 -top-4 flex h-[45px] w-[45px] items-center justify-center rounded-full bg-white text-black">
+      <div className="absolute bottom-6 left-6 right-6 z-10 rounded-[8px] bg-white px-8 py-8 text-[#17161b]">
+        <div className="absolute -right-3 -top-3 flex h-[45px] w-[45px] items-center justify-center rounded-[8px] bg-white text-black">
           <span className="text-[26px] leading-none">✦</span>
         </div>
         <h3 className="max-w-[450px] text-[26px] font-semibold leading-[1.2] tracking-[-0.02em]">
@@ -148,23 +148,23 @@ export function AuthPageShell({
   showMarketingPanel?: boolean;
 }) {
   return (
-    <main className="h-screen bg-black p-6 text-white">
+    <main className="min-h-screen bg-black p-3 text-white sm:p-5">
       <div
         className={cn(
-          "grid h-[calc(100vh-48px)] gap-10",
+          "grid min-h-[calc(100svh-24px)] gap-5 sm:min-h-[calc(100svh-40px)] sm:gap-8",
           showMarketingPanel
             ? "lg:grid-cols-[minmax(420px,0.92fr)_minmax(560px,1fr)]"
             : "place-items-center",
         )}
       >
-        <section className="relative flex min-h-[calc(100vh-48px)] flex-col overflow-hidden rounded-[6px] px-4 py-10 sm:px-12 lg:px-11">
+        <section className="relative flex min-h-[calc(100svh-24px)] flex-col overflow-hidden rounded-[8px] px-4 py-8 sm:min-h-[calc(100svh-40px)] sm:px-8 sm:py-10 lg:px-10">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_62%,rgba(79,179,129,0.5),transparent_26%),radial-gradient(circle_at_64%_50%,rgba(53,131,91,0.45),transparent_18%),linear-gradient(90deg,#020403_0%,#030605_44%,#08140f_100%)]" />
           <div className="relative z-10 flex min-h-full flex-col">
             <Link href="/" className="inline-flex w-fit">
               <AuthLogo className="auth-logo-on-dark h-[30px] w-[154px]" />
             </Link>
-            <div className="auth-hidden-scrollbar flex flex-1 overflow-y-auto py-6">
-              <div className={cn("w-full max-w-[448px]", contentClassName)}>
+            <div className="auth-hidden-scrollbar flex flex-1 overflow-y-auto py-6 sm:py-8">
+              <div className={cn("w-full max-w-[448px] min-w-0", contentClassName)}>
                 {children}
               </div>
             </div>
@@ -333,14 +333,14 @@ export function AuthSplitShell({
       showMarketingPanel={Boolean(illustration)}
     >
       {title || description ? (
-        <div className="my-8 mt-[100px] ">
+        <div className="my-6 mt-12 sm:my-8 sm:mt-20 lg:mt-24">
           {title ? (
-            <h1 className="text-[28px] font-semibold leading-[1.25] tracking-[-0.02em] text-white">
+            <h1 className="text-[26px] font-semibold leading-[1.2] tracking-[-0.02em] text-white sm:text-[28px]">
               {title}
             </h1>
           ) : null}
           {description ? (
-            <div className="mt-3 text-[16px] leading-[1.7] text-white/72">
+            <div className="mt-3 text-[15px] leading-[1.65] text-white/72 sm:text-[16px]">
               {description}
             </div>
           ) : null}
@@ -391,7 +391,7 @@ export function AuthOtpInput({
   }
 
   return (
-    <div className="flex flex-wrap gap-8">
+    <div className="grid grid-cols-6 gap-2 sm:gap-3">
       {chars.map((char, index) => (
         <input
           key={index}
@@ -430,7 +430,7 @@ export function AuthOtpInput({
               previousInput?.focus();
             }
           }}
-          className="h-[45px] w-[45px] rounded-[8px] border border-[#d9e4ea] bg-white text-center text-[18px] font-semibold text-[#27364b] outline-none transition focus:border-[#0a9550]"
+          className="h-12 min-w-0 rounded-[8px] border border-[#d9e4ea] bg-white text-center text-[18px] font-semibold text-[#27364b] outline-none transition focus:border-[#0a9550] sm:h-14"
         />
       ))}
     </div>

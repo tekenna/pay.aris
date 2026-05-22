@@ -103,6 +103,7 @@ export type Business = {
     status?: string | null;
     meta?: Record<string, unknown> | null;
   };
+  settlementAccounts?: BusinessSettlementAccount[];
   teamMembers?: BusinessTeamMember[];
 };
 
@@ -159,9 +160,19 @@ export type MerchantDashboardOverview = {
   periodDays: number;
   metrics: {
     totalTransactions: number;
+    customerTransactions?: number;
     totalCheckoutSessions: number;
     totalVolume: number;
     grossVolume?: number;
+    requestedVolume?: number;
+    totalRevenue?: number;
+    totalFees?: number;
+    netRevenue?: number;
+    settlementCreditsVolume?: number;
+    transferOutflow?: number;
+    availableBalance?: number;
+    primaryAvailableBalance?: number;
+    checkoutAvailableBalance?: number;
     successfulPayments?: number;
     failedTransactions?: number;
     conversionRate?: number;
@@ -175,10 +186,38 @@ export type MerchantDashboardOverview = {
     label: string;
     gross: number;
     net: number;
+    fees?: number;
+    requestedAmount?: number;
     successfulPayments: number;
     checkoutSessions: number;
   }>;
   recentActivity: BusinessTransaction[];
+  sourcePerformance?: Array<{
+    source: "payment_link" | "api_checkout" | string;
+    label: string;
+    checkoutSessions: number;
+    successfulPayments: number;
+    pendingSessions: number;
+    failedSessions: number;
+    successRate: number;
+    volume: number;
+    grossVolume: number;
+  }>;
+  issueBreakdown?: Array<{
+    label: string;
+    count: number;
+  }>;
+  bankPerformance?: Array<{
+    bankName: string;
+    successfulPayments: number;
+    pendingSessions: number;
+    failedSessions: number;
+    totalVolume: number;
+    totalTransactions: number;
+    successRate: number;
+    pendingRate: number;
+    failedRate: number;
+  }>;
 };
 
 export type BusinessTransaction = {
@@ -205,6 +244,17 @@ export type BusinessTransaction = {
     phoneNumber?: string | null;
     accountNumber?: string | null;
   };
+  settlementAccount?: {
+    accountId?: string | null;
+    alias?: string | null;
+    kind?: "primary" | "checkout" | "custom" | string | null;
+    accountNumber?: string | null;
+    accountName?: string | null;
+    bankName?: string | null;
+    bankCode?: string | null;
+    currency?: string | null;
+    status?: string | null;
+  } | null;
   virtualAccount?: {
     accountNumber?: string | null;
     accountName?: string | null;
@@ -214,7 +264,9 @@ export type BusinessTransaction = {
 };
 
 export type BusinessSettlementAccount = {
-  id: "primary" | "checkout";
+  id: string;
+  alias?: string | null;
+  kind?: "primary" | "checkout" | "custom";
   bankName: string;
   bankCode?: string | null;
   accountNumber: string;
@@ -222,6 +274,7 @@ export type BusinessSettlementAccount = {
   balance: number;
   currency: string;
   status: string;
+  isDefault?: boolean;
 };
 
 export type MerchantBank = {
@@ -297,6 +350,17 @@ export type CheckoutSession = {
     email?: string | null;
     phoneNumber?: string | null;
   };
+  settlementAccount?: {
+    accountId?: string | null;
+    alias?: string | null;
+    kind?: "primary" | "checkout" | "custom" | string | null;
+    accountNumber?: string | null;
+    accountName?: string | null;
+    bankName?: string | null;
+    bankCode?: string | null;
+    currency?: string | null;
+    status?: string | null;
+  } | null;
   virtualAccount?: {
     attemptReference?: string | null;
     accountNumber?: string | null;
@@ -317,6 +381,34 @@ export type CheckoutConfig = {
   secondaryColor?: string | null;
   callbackUrl?: string | null;
   webhookUrl?: string | null;
+};
+
+export type MerchantFeeSchedule = {
+  checkout: Array<{
+    key: string;
+    label: string;
+    providerFeeType: "flat" | "percentage";
+    providerFeeValue: number;
+    providerFeeLabel: string;
+    markupFee: number;
+    totalFeeLabel: string;
+  }>;
+  transfer: Array<{
+    key: string;
+    label: string;
+    providerFeeType: "flat" | "percentage";
+    providerFeeValue: number;
+    providerFeeLabel: string;
+    markupFee: number;
+    totalFeeLabel: string;
+  }>;
+  verification: Array<{
+    key: string;
+    label: string;
+    providerFee: number;
+    markupFee: number;
+    totalFeeLabel: string;
+  }>;
 };
 
 export type WebhookConfig = {

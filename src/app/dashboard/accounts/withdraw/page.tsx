@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
-import { TransactionReceipt } from "@/components/checkout/transaction-receipt";
 import { MerchantShell } from "@/components/dashboard/merchant-shell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -19,7 +18,6 @@ import {
 } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
-import { merchantApi } from "@/lib/merchant-api";
 import { downloadReceiptPdf } from "@/lib/receipt-pdf";
 import {
   BANKS,
@@ -38,10 +36,96 @@ import type {
   ValidatedTransferAccount,
 } from "@/lib/types";
 import { formatCurrency } from "@/lib/utils";
+import { accountsService } from "@/services/accounts.service";
 import { useBusinessSession } from "@/store/business-session-provider";
 
 type DrawerStep = "confirm" | "success" | null;
 type TransferPinModalStep = "closed" | "create" | "enter-pin";
+
+function Toggle({
+  checked,
+  onChange,
+}: {
+  checked: boolean;
+  onChange: (next: boolean) => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className={`relative inline-flex h-8 w-14 items-center rounded-full border transition ${
+        checked
+          ? "border-[var(--brand)] bg-[var(--brand-soft)]"
+          : "border-[#d8e0ea] bg-[#eef2f6]"
+      }`}
+    >
+      <span
+        className={`inline-block h-6 w-6 rounded-full bg-white shadow-[0_2px_6px_rgba(15,23,42,0.12)] transition ${
+          checked ? "translate-x-7" : "translate-x-1"
+        }`}
+      />
+    </button>
+  );
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="text-[13px] font-semibold uppercase tracking-[0.04em] text-[#64748b]">
+      {children}
+    </p>
+  );
+}
+
+function ActionRow({
+  icon,
+  title,
+  description,
+  trailing,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description?: string;
+  trailing?: React.ReactNode;
+  onClick?: () => void;
+}) {
+  const content = (
+    <>
+      <div className="flex items-center gap-4">
+        <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-[var(--brand-soft)] text-[var(--brand)]">
+          {icon}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[15px] font-semibold text-[#0f1728]">
+            {title}
+          </span>
+          {description ? (
+            <span className="mt-1 block text-sm text-[#64748b]">
+              {description}
+            </span>
+          ) : null}
+        </span>
+      </div>
+      <span className="shrink-0 text-[#64748b]">{trailing}</span>
+    </>
+  );
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className="flex w-full items-center justify-between gap-4 rounded-[8px] px-3 py-3 text-left transition hover:bg-[#f8faf9]"
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return <div className="flex items-center justify-between gap-4 px-3 py-3">{content}</div>;
+}
 
 function mapMerchantBank(bank: MerchantBank): Bank {
   return {
@@ -84,48 +168,7 @@ function BankAvatar({
 function buildBusinessAccounts(
   profile: Business | null,
 ): BusinessSettlementAccount[] {
-  const accounts: BusinessSettlementAccount[] = [];
-
-  if (profile?.kyc?.settlementAccountNumber) {
-    accounts.push({
-      id: "primary",
-      bankName: profile.safehaven?.bankName || "Safehaven MFB",
-      bankCode: profile.safehaven?.bankCode || null,
-      accountNumber: profile.kyc.settlementAccountNumber,
-      accountName:
-        profile.kyc?.settlementAccountName ||
-        profile.businessName ||
-        "Settlement Account",
-      balance: Number(
-        profile.safehaven?.meta?.availableBalance ??
-          profile.safehaven?.meta?.balance ??
-          0,
-      ),
-      currency: "NGN",
-      status: profile.safehaven?.status || "active",
-    });
-  }
-
-  if (profile?.safehavenCheckout?.accountNumber) {
-    accounts.push({
-      id: "checkout",
-      bankName: profile.safehavenCheckout.bankName || "Safehaven MFB",
-      bankCode: profile.safehavenCheckout.bankCode || null,
-      accountNumber: profile.safehavenCheckout.accountNumber,
-      accountName:
-        profile.safehavenCheckout.accountName ||
-        `${profile.businessName || "Business"} Checkout`,
-      balance: Number(
-        profile.safehavenCheckout?.meta?.availableBalance ??
-          profile.safehavenCheckout?.meta?.balance ??
-          0,
-      ),
-      currency: "NGN",
-      status: profile.safehavenCheckout.status || "active",
-    });
-  }
-
-  return accounts;
+  return profile?.settlementAccounts ?? [];
 }
 
 function formatTransferAmountInput(value: string) {
@@ -153,7 +196,6 @@ export default function WithdrawPage() {
   const [selectedSourceAccount, setSelectedSourceAccount] =
     useState<BusinessSettlementAccount | null>(null);
   const [showSourceAccountList, setShowSourceAccountList] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
   const [bankSearchTerm, setBankSearchTerm] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
   const [selectedBank, setSelectedBank] = useState<BankSuggestion | null>(null);
@@ -170,7 +212,7 @@ export default function WithdrawPage() {
   const [transferPinModalStep, setTransferPinModalStep] =
     useState<TransferPinModalStep>("closed");
   const [transferResult, setTransferResult] = useState<
-    Awaited<ReturnType<typeof merchantApi.createTransfer>>["data"] | null
+    Awaited<ReturnType<typeof accountsService.createTransfer>>["data"] | null
   >(null);
   const [transferCompletedAt, setTransferCompletedAt] = useState<string | null>(
     null,
@@ -178,10 +220,11 @@ export default function WithdrawPage() {
   const [submitting, setSubmitting] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showBankList, setShowBankList] = useState(false);
+  const [showBeneficiaries, setShowBeneficiaries] = useState(false);
+  const [saveAsBeneficiary, setSaveAsBeneficiary] = useState(false);
   const suggestionsRef = useRef<HTMLDivElement | null>(null);
   const bankListRef = useRef<HTMLDivElement | null>(null);
   const sourceAccountListRef = useRef<HTMLDivElement | null>(null);
-  const receiptRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     async function loadData() {
@@ -191,9 +234,9 @@ export default function WithdrawPage() {
 
       const [profileResponse, recentTransfersResponse, banksResponse] =
         await Promise.all([
-          merchantApi.getProfile(session.token),
-          merchantApi.getRecentTransfers(session.token),
-          merchantApi.getTransferBanks(session.token),
+          accountsService.getProfile(session.token),
+          accountsService.getRecentTransfers(session.token),
+          accountsService.getTransferBanks(session.token),
         ]);
 
       if (profileResponse.statusCode === 200) {
@@ -227,22 +270,22 @@ export default function WithdrawPage() {
   }, [accounts, selectedSourceAccount]);
 
   const activeSourceAccount = selectedSourceAccount || accounts[0] || null;
+  const accountDigits = accountNumber.replace(/\D/g, "");
   const suggestions = useMemo(
     () => getBankSuggestions(accountNumber, banks),
     [accountNumber, banks],
   );
-  const filteredRecipients = useMemo(() => {
-    const pattern = searchTerm.trim().toLowerCase();
-    if (!pattern) {
-      return recipients;
+  const matchedRecipients = useMemo(() => {
+    if (!accountDigits) {
+      return [];
     }
 
     return recipients.filter((recipient) =>
-      [recipient.name, recipient.accountNumber, recipient.bankName]
-        .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(pattern)),
+      String(recipient.accountNumber || "")
+        .replace(/\D/g, "")
+        .includes(accountDigits),
     );
-  }, [recipients, searchTerm]);
+  }, [accountDigits, recipients]);
   const filteredBanks = useMemo(() => {
     const pattern = bankSearchTerm.trim().toLowerCase();
     if (!pattern) {
@@ -261,6 +304,13 @@ export default function WithdrawPage() {
   const hasPaymentPin = Boolean(
     profile?.hasPaymentPin ?? session?.business.hasPaymentPin,
   );
+  const suggestedBanks = useMemo(
+    () => (accountDigits ? suggestions.slice(0, 6) : []),
+    [accountDigits, suggestions],
+  );
+  const hasVerifiedRecipient =
+    validationState === "success" && Boolean(validation?.accountName);
+  const verifiedAccountName = validation?.accountName || "";
 
   useEffect(() => {
     function handlePointerDown(event: MouseEvent) {
@@ -298,6 +348,12 @@ export default function WithdrawPage() {
   }, [showBankList, showSuggestions, showSourceAccountList]);
 
   useEffect(() => {
+    if (!accountDigits || !matchedRecipients.length) {
+      setShowBeneficiaries(false);
+    }
+  }, [accountDigits, matchedRecipients.length]);
+
+  useEffect(() => {
     let cancelled = false;
 
     async function verifyAccount() {
@@ -308,7 +364,7 @@ export default function WithdrawPage() {
       }
 
       setValidationState("loading");
-      const response = await merchantApi.validateTransferAccount(
+      const response = await accountsService.validateTransferAccount(
         session.token,
         {
           accountNumber,
@@ -341,6 +397,9 @@ export default function WithdrawPage() {
 
   function applyRecipient(recipient: RecentBusinessTransfer) {
     setAccountNumber(formatAccountNumber(recipient.accountNumber || ""));
+    setAmount(
+      recipient.amount ? formatTransferAmountInput(String(recipient.amount)) : "",
+    );
 
     const matchedBank =
       findBankByCode(recipient.bankCode || "", banks) ||
@@ -367,6 +426,7 @@ export default function WithdrawPage() {
 
     setValidation(null);
     setValidationState("idle");
+    setShowBeneficiaries(false);
   }
 
   function isFormReady() {
@@ -377,6 +437,19 @@ export default function WithdrawPage() {
       validationState === "success" &&
       numericAmount > 0,
     );
+  }
+
+  function resetTransferForm() {
+    setAccountNumber("");
+    setSelectedBank(null);
+    setAmount("");
+    setNarration("");
+    setValidation(null);
+    setValidationState("idle");
+    setShowSuggestions(false);
+    setShowBankList(false);
+    setShowBeneficiaries(false);
+    setSaveAsBeneficiary(false);
   }
 
   async function handleTransferConfirmation() {
@@ -398,7 +471,7 @@ export default function WithdrawPage() {
 
     setSubmitting(true);
     try {
-      const response = await merchantApi.createTransfer(session.token, {
+      const response = await accountsService.createTransfer(session.token, {
         accountId: activeSourceAccount.id,
         destinationAccountNumber: accountNumber,
         destinationAccountName: validation.accountName,
@@ -420,9 +493,10 @@ export default function WithdrawPage() {
       setDrawerStep("success");
       setTransferPinModalStep("closed");
       setTransferPin("");
+      resetTransferForm();
       toast.success(response.message || "Transfer completed successfully.");
 
-      const recentTransfersResponse = await merchantApi.getRecentTransfers(
+      const recentTransfersResponse = await accountsService.getRecentTransfers(
         session.token,
       );
       if (recentTransfersResponse.statusCode === 200) {
@@ -438,13 +512,31 @@ export default function WithdrawPage() {
   }
 
   async function downloadReceipt() {
-    if (!transferResult || !receiptRef.current) {
+    if (!transferResult) {
       return;
     }
 
     try {
       await downloadReceiptPdf(
-        receiptRef.current,
+        {
+          amount: transferResult.amount,
+          paidAt: transferCompletedAt,
+          status: transferResult.status,
+          sessionId:
+            transferResult.providerReference ||
+            transferResult.reference ||
+            "--",
+          recipientName: transferResult.recipient.accountName,
+          bankName: transferResult.recipient.bankName || "--",
+          accountNumber: transferResult.recipient.accountNumber,
+          sourceBankName: transferResult.sender.bankName,
+          sourceAccountNumber: transferResult.sender.accountNumber,
+          sourceAccountName:
+            transferResult.sender.accountName ||
+            activeSourceAccount?.accountName ||
+            "--",
+          narration: narration || "--",
+        },
         `${transferResult.reference}-receipt.pdf`,
       );
     } catch (error) {
@@ -477,122 +569,28 @@ export default function WithdrawPage() {
   }
 
   return (
-    <MerchantShell title="Withdraw">
-      <Link
-        href="/dashboard/accounts"
-        className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-slate-500"
-      >
-        <ChevronLeft className="h-4 w-4" />
-        Back
-      </Link>
+    <MerchantShell
+      title="Transfers"
+      actions={
+        <Link
+          href="/dashboard/transactions"
+          className="font-semibold text-[var(--brand)]"
+        >
+          Transfer History
+        </Link>
+      }
+    >
+      <div className="mx-auto flex w-full max-w-[760px] flex-col gap-5 xl:ml-0">
+        <Link
+          href="/dashboard/accounts"
+          className="inline-flex items-center gap-2 text-sm font-medium text-slate-500"
+        >
+          <ChevronLeft className="h-4 w-4" />
+          Back
+        </Link>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.08fr)_420px]">
-        <Card className="rounded-[24px] border-[#dde3ea] p-6 md:p-8">
-          <p className="text-[15px] font-semibold text-[#667085]">
-            Add Recipient Details
-          </p>
-
-          {activeSourceAccount ? (
-            <div ref={sourceAccountListRef} className="relative mt-5">
-              {accounts.length > 1 ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowSourceAccountList((current) => !current);
-                  }}
-                  className="w-full rounded-[16px] border border-[#e4e7ec] bg-[#f8fafb] px-4 py-4 text-left transition hover:bg-[#f0f2f5]"
-                >
-                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#98a2b3]">
-                    Sending from
-                  </p>
-                  <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-[#101828]">
-                        {activeSourceAccount.accountName}
-                      </p>
-                      <p className="mt-1 text-xs text-[#667085]">
-                        {activeSourceAccount.accountNumber} •{" "}
-                        {activeSourceAccount.bankName}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <p className="text-sm font-bold text-[#101828]">
-                        {formatCurrency(
-                          activeSourceAccount.balance,
-                          activeSourceAccount.currency,
-                        )}
-                      </p>
-                      <ChevronDown className="h-4 w-4 text-[#667085]" />
-                    </div>
-                  </div>
-                </button>
-              ) : (
-                <div className="rounded-[16px] border border-[#e4e7ec] bg-[#f8fafb] px-4 py-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#98a2b3]">
-                    Sending from
-                  </p>
-                  <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-semibold text-[#101828]">
-                        {activeSourceAccount.accountName}
-                      </p>
-                      <p className="mt-1 text-xs text-[#667085]">
-                        {activeSourceAccount.accountNumber} •{" "}
-                        {activeSourceAccount.bankName}
-                      </p>
-                    </div>
-                    <p className="text-sm font-bold text-[#101828]">
-                      {formatCurrency(
-                        activeSourceAccount.balance,
-                        activeSourceAccount.currency,
-                      )}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {showSourceAccountList && accounts.length > 1 ? (
-                <div className="absolute left-0 right-0 top-[calc(100%+10px)] z-20 overflow-hidden rounded-[16px] border border-[#e4e7ec] bg-white shadow-[0_24px_44px_rgba(15,23,42,0.08)]">
-                  {accounts.map((account) => (
-                    <button
-                      key={account.id}
-                      type="button"
-                      className={`flex w-full items-center justify-between gap-4 border-b border-[#e4e7ec] px-4 py-4 text-left transition last:border-b-0 ${
-                        activeSourceAccount?.id === account.id
-                          ? "bg-[#f0f7ff]"
-                          : "hover:bg-[#f8fafb]"
-                      }`}
-                      onClick={() => {
-                        setSelectedSourceAccount(account);
-                        setShowSourceAccountList(false);
-                      }}
-                    >
-                      <div className="flex-1">
-                        <p className="text-sm font-semibold text-[#101828]">
-                          {account.accountName}
-                        </p>
-                        <p className="mt-1 text-xs text-[#667085]">
-                          {account.accountNumber} • {account.bankName}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <p className="text-sm font-bold text-[#101828]">
-                          {formatCurrency(account.balance, account.currency)}
-                        </p>
-                        {activeSourceAccount?.id === account.id ? (
-                          <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#0a9550]">
-                            <span className="text-xs font-bold text-white">
-                              ✓
-                            </span>
-                          </span>
-                        ) : null}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              ) : null}
-            </div>
-          ) : null}
+        <Card className="dashboard-surface-card overflow-visible p-6 md:p-7">
+          <SectionLabel>Recipient Details</SectionLabel>
 
           <form
             className="mt-6 grid gap-5"
@@ -607,8 +605,7 @@ export default function WithdrawPage() {
           >
             <div ref={suggestionsRef} className="relative">
               <Input
-                label="Enter Recipient Account Number"
-                placeholder="e.g 0123456789"
+                placeholder="Enter account number"
                 value={accountNumber}
                 onFocus={() => {
                   setShowSuggestions(true);
@@ -617,7 +614,7 @@ export default function WithdrawPage() {
                 onChange={(event) => {
                   const nextValue = formatAccountNumber(event.target.value);
                   setAccountNumber(nextValue);
-                  setShowSuggestions(true);
+                  setShowSuggestions(nextValue.replace(/\D/g, "").length > 0);
                   setShowBankList(false);
                   setValidation(null);
                   setValidationState("idle");
@@ -627,32 +624,29 @@ export default function WithdrawPage() {
                 }}
                 fieldSize="lg"
                 fieldClassName={
-                  validationState === "success"
-                    ? "h-[60px] rounded-[14px] border-[#66c39b] bg-white shadow-[0_0_0_1px_rgba(102,195,155,0.2)]"
-                    : "h-[60px] rounded-[14px] border-transparent bg-[#f3f5f8]"
+                  hasVerifiedRecipient
+                    ? "h-[72px] rounded-[8px] border border-[#8dc8aa] bg-[#fbfefc] shadow-[0_0_0_1px_rgba(0,83,48,0.06)]"
+                    : "h-[72px] rounded-[8px] border border-[#d8e2ec] bg-[#edf2f8] shadow-[0_1px_2px_rgba(15,23,42,0.04)]"
                 }
+                className="text-[18px] font-semibold tracking-[0.01em] text-[#1e293b] md:text-[22px]"
                 trailing={
                   validationState === "loading" ? (
                     <SpinnerIcon className="h-5 w-5 animate-spin text-[#667085]" />
-                  ) : validation?.accountName ? (
-                    <span className="inline-flex rounded-[8px] bg-[#e8f6ef] px-3 py-1 text-xs font-semibold text-[#0a9550]">
-                      {validation.accountName}
-                    </span>
                   ) : null
                 }
               />
 
-              {showSuggestions && suggestions.length ? (
-                <div className="absolute left-0 right-0 top-[calc(100%+10px)] z-30 overflow-hidden rounded-[18px] border border-[#e4e7ec] bg-white shadow-[0_24px_44px_rgba(15,23,42,0.08)]">
-                  <div className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#98a2b3]">
+              {showSuggestions && suggestedBanks.length ? (
+                <div className="absolute left-0 right-0 top-[calc(100%+10px)] z-30 overflow-hidden rounded-[8px] border border-[var(--border)] bg-white shadow-[0_24px_44px_rgba(15,23,42,0.08)]">
+                  <div className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.08em] text-[#94a3b8]">
                     Suggested banks
                   </div>
                   <div className="max-h-[280px] overflow-y-auto pb-2">
-                    {suggestions.map((suggestion) => (
+                    {suggestedBanks.map((suggestion) => (
                       <button
                         key={`${suggestion.code}-${suggestion.name}`}
                         type="button"
-                        className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-[#f8fafb]"
+                        className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-[#f8faf9]"
                         onClick={() => {
                           setSelectedBank(suggestion);
                           setShowSuggestions(false);
@@ -677,52 +671,67 @@ export default function WithdrawPage() {
               ) : null}
             </div>
 
-            <div ref={bankListRef} className="relative">
-              <button
-                type="button"
+            {hasVerifiedRecipient ? (
+              <div className="rounded-[8px] border border-[var(--border)] bg-white">
+                <ActionRow
+                  icon={
+                    <span className="text-lg font-bold">
+                      {verifiedAccountName
+                        .split(" ")
+                        .slice(0, 2)
+                        .map((item) => item.charAt(0))
+                        .join("")
+                        .slice(0, 2)}
+                    </span>
+                  }
+                  title={verifiedAccountName}
+                  description={`${selectedBank?.name || "--"} • ${accountNumber}`}
+                  trailing={<span className="text-lg">›</span>}
+                />
+                <div className="flex items-center justify-between border-t border-[var(--border)] px-3 py-4">
+                  <span className="text-sm font-medium text-[#64748b]">
+                    Save as beneficiary
+                  </span>
+                  <Toggle
+                    checked={saveAsBeneficiary}
+                    onChange={setSaveAsBeneficiary}
+                  />
+                </div>
+              </div>
+            ) : null}
+
+            <div ref={bankListRef} className="relative rounded-[8px] border border-[var(--border)] bg-white p-1">
+              <ActionRow
+                icon={<BankIcon className="h-5 w-5" />}
+                title={selectedBank?.name || "Select Recipient's Bank"}
+                description={
+                  selectedBank ? "Tap to change destination bank" : undefined
+                }
+                trailing={<ChevronDown className="h-4 w-4" />}
                 onClick={() => {
                   setShowSuggestions(false);
                   setShowBankList((current) => !current);
                   setBankSearchTerm("");
                 }}
-                className="flex h-[60px] w-full items-center justify-between rounded-[14px] border border-transparent bg-[#f3f5f8] px-4 text-left transition focus:outline-none focus:ring-1 focus:ring-[#9fc5ff]"
-              >
-                <span className="flex min-w-0 items-center gap-3">
-                  {selectedBank ? (
-                    <BankAvatar
-                      name={selectedBank.name}
-                      logoUrl={selectedBank.logoUrl}
-                      className="h-10 w-10 bg-white"
-                    />
-                  ) : null}
-                  <span
-                    className={`text-[14px] font-semibold ${selectedBank ? "text-[#273142]" : "text-[#667085]"}`}
-                  >
-                    {selectedBank?.name || "Select Bank"}
-                  </span>
-                </span>
-                <ChevronDown className="h-4 w-4 text-[#667085]" />
-              </button>
+              />
 
               {showBankList ? (
-                <div className="absolute left-0 right-0 top-[calc(100%+10px)] z-20 max-h-[280px] overflow-y-auto rounded-[18px] border border-[#e4e7ec] bg-white p-2 shadow-[0_24px_44px_rgba(15,23,42,0.08)]">
+                <div className="absolute left-0 right-0 top-[calc(100%+10px)] z-20 max-h-[320px] overflow-y-auto rounded-[8px] border border-[var(--border)] bg-white p-2 shadow-[0_24px_44px_rgba(15,23,42,0.08)]">
                   <div className="px-1 pb-2">
                     <Input
                       value={bankSearchTerm}
-                      onChange={(event) =>
-                        setBankSearchTerm(event.target.value)
-                      }
+                      onChange={(event) => setBankSearchTerm(event.target.value)}
                       placeholder="Search banks"
                       leftIcon={<SearchIcon className="h-4 w-4" />}
                       fieldSize="lg"
-                      fieldClassName="h-[48px] rounded-[12px] border-transparent bg-[#f3f5f8]"
+                      fieldClassName="h-[48px] rounded-[8px] border-transparent bg-[#f3f5f8]"
                     />
                   </div>
                   {filteredBanks.map((bank, index) => (
                     <button
                       key={`${bank.bankCode}-${bank.name}-${index}`}
                       type="button"
-                      className="flex w-full items-center gap-3 rounded-[12px] px-3 py-3 text-left transition hover:bg-[#f8fafb]"
+                      className="flex w-full items-center gap-3 rounded-[8px] px-3 py-3 text-left transition hover:bg-[#f8faf9]"
                       onClick={() => {
                         setSelectedBank({
                           name: bank.name,
@@ -761,102 +770,169 @@ export default function WithdrawPage() {
               </p>
             ) : null}
 
-            {validationState === "success" && validation?.accountName ? (
-              <div className="rounded-[14px] border border-[#66c39b] bg-[#f4fcf7] px-4 py-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#0a9550]">
-                  Verified Account
-                </p>
-                <div className="mt-2 flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold text-[#101828]">
-                      {validation.accountName}
-                    </p>
-                    <p className="mt-1 text-xs text-[#667085]">
-                      {accountNumber} • {selectedBank?.name}
-                    </p>
+            {matchedRecipients.length ? (
+              <div className="rounded-[8px] border border-[var(--border)] bg-white p-1">
+                <ActionRow
+                  icon={<SearchIcon className="h-5 w-5" />}
+                  title="My Beneficiaries"
+                  description={`${matchedRecipients.length} recent recipient${matchedRecipients.length === 1 ? "" : "s"} match this account`}
+                  trailing={<span className="text-lg">›</span>}
+                  onClick={() => setShowBeneficiaries((current) => !current)}
+                />
+                {showBeneficiaries ? (
+                  <div className="border-t border-[var(--border)] px-3 py-3">
+                    <div className="grid gap-2">
+                      {matchedRecipients.map((recipient) => (
+                        <button
+                          key={recipient.id}
+                          type="button"
+                          className="flex items-center justify-between gap-4 rounded-[8px] px-3 py-3 text-left transition hover:bg-[#f8faf9]"
+                          onClick={() => applyRecipient(recipient)}
+                        >
+                          <span>
+                            <span className="block font-semibold text-[#273142]">
+                              {recipient.name}
+                            </span>
+                            <span className="mt-1 block text-sm text-[#98a2b3]">
+                              {recipient.accountNumber || "--"} •{" "}
+                              {recipient.bankName || "--"}
+                            </span>
+                          </span>
+                          <BankAvatar name={recipient.bankName} />
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                  {selectedBank ? (
-                    <BankAvatar
-                      name={selectedBank.name}
-                      logoUrl={selectedBank.logoUrl}
-                      className="h-11 w-11 bg-white"
-                    />
-                  ) : null}
-                </div>
+                ) : null}
               </div>
             ) : null}
 
-            <Input
-              label="Amount"
-              placeholder="e.g 5000"
-              value={amount}
-              onChange={(event) =>
-                setAmount(formatTransferAmountInput(event.target.value))
-              }
-              fieldSize="lg"
-              fieldClassName="h-[60px] rounded-[14px] border-transparent bg-[#f3f5f8]"
-            />
-            <Input
-              label="Narration(Optional)"
-              placeholder="e.g Office supplies payment"
-              value={narration}
-              onChange={(event) => setNarration(event.target.value)}
-              fieldSize="lg"
-              fieldClassName="h-[60px] rounded-[14px] border-transparent bg-[#f3f5f8]"
-            />
+            {hasVerifiedRecipient ? (
+              <div className="rounded-[8px] border border-[var(--border)] bg-white p-6">
+                <SectionLabel>Transfer Details</SectionLabel>
+                <div className="mt-6 grid gap-5">
+                  <div className="rounded-[8px] bg-[#f8fafc] px-5 py-4">
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-[15px] font-medium text-[#64748b]">
+                        Amount
+                      </span>
+                      <input
+                        value={amount}
+                        onChange={(event) =>
+                          setAmount(formatTransferAmountInput(event.target.value))
+                        }
+                        placeholder="0.00"
+                        inputMode="decimal"
+                        className="w-[220px] bg-transparent text-right text-[32px] font-semibold tracking-[-0.04em] text-[#1e293b] outline-none placeholder:text-[#94a3b8]"
+                      />
+                    </div>
+                  </div>
 
-            <Button
-              type="submit"
-              disabled={!isFormReady()}
-              className="ml-auto h-[54px] min-w-[150px] rounded-[14px] bg-[#1d1d1f] text-[20px] font-bold disabled:bg-[#98a2b3]"
-            >
-              Continue
-            </Button>
-          </form>
-        </Card>
+                  {activeSourceAccount ? (
+                    <div ref={sourceAccountListRef} className="relative rounded-[8px] border border-[var(--border)] bg-white p-5">
+                      <div className="flex items-center justify-between gap-4">
+                        <SectionLabel>Send From</SectionLabel>
+                        <span className="text-sm font-semibold text-[#0f1728]">
+                          Bal:{" "}
+                          {formatCurrency(
+                            activeSourceAccount.balance,
+                            activeSourceAccount.currency,
+                          )}
+                        </span>
+                      </div>
 
-        <Card className="rounded-[24px] border-[#dde3ea] p-5 md:p-6">
-          <p className="text-[15px] font-semibold text-[#667085]">
-            Recent Transfers
-          </p>
-          <div className="mt-5">
-            <Input
-              value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Search by Name"
-              leftIcon={<SearchIcon className="h-5 w-5" />}
-              fieldSize="lg"
-              fieldClassName="h-[54px] rounded-[14px] border-transparent bg-[#f3f5f8]"
-            />
-          </div>
+                      <div className="mt-4 flex items-center justify-between gap-4 rounded-[8px] border border-[var(--border)] bg-[#fbfcfd] p-4">
+                        <div className="border-l-2 border-[var(--brand)] pl-3">
+                          <p className="text-[15px] font-semibold text-[#0f1728]">
+                            {activeSourceAccount.accountName}
+                          </p>
+                          <p className="mt-2 text-sm text-[#64748b]">
+                            {activeSourceAccount.accountNumber}
+                            <span className="ml-2 inline-flex rounded-[6px] bg-[var(--brand-soft)] px-2 py-1 text-xs font-semibold text-[var(--brand)]">
+                              {activeSourceAccount.kind === "checkout"
+                                ? "Checkout"
+                                : activeSourceAccount.kind === "primary"
+                                  ? "Primary"
+                                  : "Settlement"}
+                            </span>
+                          </p>
+                        </div>
+                        {accounts.length > 1 ? (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setShowSourceAccountList((current) => !current)
+                            }
+                            className="rounded-[8px] border border-[#cdd7e3] px-4 py-2 text-sm font-semibold text-[#334155]"
+                          >
+                            Change
+                          </button>
+                        ) : null}
+                      </div>
 
-          <div className="mt-6 grid gap-5">
-            {filteredRecipients.map((recipient) => (
-              <button
-                key={recipient.id}
-                type="button"
-                className="flex items-center justify-between gap-4 text-left"
-                onClick={() => applyRecipient(recipient)}
-              >
-                <div>
-                  <p className="font-semibold text-[#273142]">
-                    {recipient.name}
-                  </p>
-                  <p className="mt-1 text-sm text-[#98a2b3]">
-                    {recipient.accountNumber || "--"} -{" "}
-                    {recipient.bankName || "--"}
-                  </p>
+                      {showSourceAccountList && accounts.length > 1 ? (
+                        <div className="absolute left-0 right-0 top-[calc(100%+10px)] z-20 overflow-hidden rounded-[8px] border border-[var(--border)] bg-white shadow-[0_24px_44px_rgba(15,23,42,0.08)]">
+                          {accounts.map((account) => (
+                            <button
+                              key={account.id}
+                              type="button"
+                              className={`flex w-full items-center justify-between gap-4 border-b border-[var(--border)] px-4 py-4 text-left transition last:border-b-0 ${
+                                activeSourceAccount?.id === account.id
+                                  ? "bg-[#f6faf7]"
+                                  : "hover:bg-[#f8faf9]"
+                              }`}
+                              onClick={() => {
+                                setSelectedSourceAccount(account);
+                                setShowSourceAccountList(false);
+                              }}
+                            >
+                              <div className="flex-1">
+                                <p className="text-sm font-semibold text-[#101828]">
+                                  {account.accountName}
+                                </p>
+                                <p className="mt-1 text-xs text-[#667085]">
+                                  {account.accountNumber} • {account.bankName}
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <p className="text-sm font-bold text-[#101828]">
+                                  {formatCurrency(account.balance, account.currency)}
+                                </p>
+                                {activeSourceAccount?.id === account.id ? (
+                                  <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[var(--brand)]">
+                                    <span className="text-xs font-bold text-white">
+                                      ✓
+                                    </span>
+                                  </span>
+                                ) : null}
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+
+                  <Input
+                    label="Narration (Optional)"
+                    placeholder="Narration"
+                    value={narration}
+                    onChange={(event) => setNarration(event.target.value)}
+                    fieldSize="lg"
+                    fieldClassName="h-[60px] rounded-[8px] border border-[#d8e2ec] bg-[#edf2f8] shadow-[0_1px_2px_rgba(15,23,42,0.04)]"
+                  />
+
+                  <Button
+                    type="submit"
+                    disabled={!isFormReady()}
+                    className="mx-auto mt-2 h-[52px] min-w-[190px] rounded-[8px] text-[18px] font-semibold"
+                  >
+                    Continue
+                  </Button>
                 </div>
-                <BankAvatar name={recipient.bankName} />
-              </button>
-            ))}
-
-            {!filteredRecipients.length ? (
-              <p className="text-sm text-slate-400">
-                Recent transfers will appear here once you complete a transfer.
-              </p>
+              </div>
             ) : null}
-          </div>
+          </form>
         </Card>
       </div>
 
@@ -1006,32 +1082,6 @@ export default function WithdrawPage() {
               </>
             )}
           </aside>
-        </div>
-      ) : null}
-
-      {transferResult ? (
-        <div
-          aria-hidden="true"
-          className="pointer-events-none fixed left-[-200vw] top-0 opacity-0"
-        >
-          <div ref={receiptRef}>
-            <TransactionReceipt
-              amount={transferResult.amount}
-              paidAt={transferCompletedAt}
-              status={transferResult.status}
-              sessionId={
-                transferResult.providerReference ||
-                transferResult.reference ||
-                "--"
-              }
-              recipientName={transferResult.recipient.accountName}
-              bankName={transferResult.recipient.bankName || "--"}
-              accountNumber={transferResult.recipient.accountNumber}
-              sourceBankName={transferResult.sender.bankName}
-              sourceAccountName={transferResult.sender.accountNumber}
-              narration={narration || "--"}
-            />
-          </div>
         </div>
       ) : null}
 

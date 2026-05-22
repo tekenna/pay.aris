@@ -12,11 +12,11 @@ export function MetricCard({
   kind?: "number" | "currency";
 }) {
   return (
-    <Card className="p-6">
+    <Card className="p-4">
       <div className="mb-8 flex items-center justify-between">
-        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f6fbf8] text-[#00884f]">
+        {/* <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f6fbf8] text-[#00884f]">
           <UserSquareIcon className="h-4 w-4" />
-        </span>
+        </span> */}
         <span className="rounded-full bg-[#e8f8ee] px-2.5 py-1 text-[12px] font-bold text-[#00884f]">
           +2.5%
         </span>

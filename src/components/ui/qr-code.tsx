@@ -3,6 +3,22 @@
 import { useMemo } from "react";
 import qrcode from "qrcode-generator";
 
+export function createQrCodeSvg(value?: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  const qr = qrcode(0, "M");
+  qr.addData(value, "Byte");
+  qr.make();
+
+  return qr.createSvgTag({
+    cellSize: 6,
+    margin: 2,
+    scalable: true,
+  });
+}
+
 export function QrCode({
   value,
   size = 192,
@@ -12,21 +28,7 @@ export function QrCode({
   size?: number;
   className?: string;
 }) {
-  const markup = useMemo(() => {
-    if (!value) {
-      return null;
-    }
-
-    const qr = qrcode(0, "M");
-    qr.addData(value, "Byte");
-    qr.make();
-
-    return qr.createSvgTag({
-      cellSize: 6,
-      margin: 2,
-      scalable: true,
-    });
-  }, [value]);
+  const markup = useMemo(() => createQrCodeSvg(value), [value]);
 
   if (!markup) {
     return (

@@ -9,7 +9,7 @@ import {
   AuthSplitShell,
   AuthTextInput,
 } from "@/features/auth/components/auth-shell";
-import { merchantApi } from "@/lib/merchant-api";
+import { authService } from "@/services/auth.service";
 
 function InvitationAcceptanceContent() {
   const router = useRouter();
@@ -38,7 +38,7 @@ function InvitationAcceptanceContent() {
 
       setLoadingPreview(true);
       try {
-        const response = await merchantApi.previewInvitation(token);
+        const response = await authService.previewInvitation(token);
         if (response.statusCode !== 200) {
           toast.error(response.message || "Invitation is invalid or expired.");
           router.replace("/login");
@@ -72,7 +72,7 @@ function InvitationAcceptanceContent() {
 
     setSubmitting(true);
     try {
-      const response = await merchantApi.acceptInvitation(token, password);
+      const response = await authService.acceptInvitation(token, password);
       if (response.statusCode !== 200) {
         toast.error(response.message || "Unable to accept invitation.");
         return;

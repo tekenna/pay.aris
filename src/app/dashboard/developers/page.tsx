@@ -10,9 +10,9 @@ import { Pagination } from "@/components/ui/pagination";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Tabs } from "@/components/ui/tabs";
 import { CheckIcon, CopyIcon, MoreIcon, SearchIcon } from "@/components/ui/icons";
-import { merchantApi } from "@/lib/merchant-api";
 import type { ApiKeyEnvironment, AuditLog, WebhookConfig, WebhookLog } from "@/lib/types";
 import { formatDateTime } from "@/lib/utils";
+import { developersService } from "@/services/developers.service";
 
 type ApiKeysResponse = {
   live?: ApiKeyEnvironment;
@@ -65,13 +65,16 @@ export default function DevelopersPage() {
       }
 
       const [keysResponse, webhookResponse, webhookLogResponse, auditLogResponse] = await Promise.all([
-        merchantApi.getApiKeys(session.token),
-        merchantApi.getWebhookConfig(session.token),
-        merchantApi.getWebhookLogs(
+        developersService.getApiKeys(session.token),
+        developersService.getWebhookConfig(session.token),
+        developersService.getWebhookLogs(
           session.token,
           new URLSearchParams({ page: String(logPage), limit: "25" }),
         ),
-        merchantApi.getAuditLogs(session.token, new URLSearchParams({ page: "1", limit: "25" })),
+        developersService.getAuditLogs(
+          session.token,
+          new URLSearchParams({ page: "1", limit: "25" }),
+        ),
       ]);
 
       if (keysResponse.statusCode === 200) {
@@ -101,8 +104,8 @@ export default function DevelopersPage() {
     }
 
     const response = apiKeys[environment]?.publicKey
-      ? await merchantApi.regenerateApiKey(session.token, environment)
-      : await merchantApi.generateApiKeys(session.token, environment);
+      ? await developersService.regenerateApiKey(session.token, environment)
+      : await developersService.generateApiKeys(session.token, environment);
 
     setMessage(response.message);
     if (response.statusCode === 200) {
@@ -113,7 +116,7 @@ export default function DevelopersPage() {
           secretKey: response.data?.secretKey,
         },
       }));
-      const keysResponse = await merchantApi.getApiKeys(session.token);
+      const keysResponse = await developersService.getApiKeys(session.token);
       if (keysResponse.statusCode === 200) {
         setApiKeys(keysResponse.data as ApiKeysResponse);
       }

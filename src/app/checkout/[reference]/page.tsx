@@ -1,17 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { Wordmark } from "@/components/brand/wordmark";
-import { TransactionReceipt } from "@/components/checkout/transaction-receipt";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { downloadReceiptPdf } from "@/lib/receipt-pdf";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { merchantApi } from "@/lib/merchant-api";
 import type { CheckoutSession } from "@/lib/types";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
+import { checkoutService } from "@/services/checkout.service";
 
 function formatAmountInput(value: string) {
   const cleaned = value.replace(/,/g, "").replace(/[^\d.]/g, "");
@@ -51,9 +50,34 @@ function getStoredAttemptReference(reference: string) {
   const existing = window.sessionStorage.getItem(key);
   if (existing) return existing;
 
-  const next = `${reference}-WEB-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+  const next = createAttemptReference(reference);
   window.sessionStorage.setItem(key, next);
   return next;
+}
+
+function createAttemptReference(reference: string) {
+  return `${reference}-WEB-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+}
+
+function storeAttemptReference(reference: string, nextAttemptReference: string) {
+  window.sessionStorage.setItem(`aris-pay.checkout-attempt.${reference}`, nextAttemptReference);
+}
+
+function resolveSessionId(searchParams: URLSearchParams) {
+  return searchParams.get("session") || "";
+}
+
+function syncCheckoutSessionUrl(reference: string, sessionId?: string | null) {
+  const url = new URL(window.location.href);
+  url.pathname = `/checkout/${encodeURIComponent(reference)}`;
+
+  if (sessionId) {
+    url.searchParams.set("session", sessionId);
+  } else {
+    url.searchParams.delete("session");
+  }
+
+  window.history.replaceState({}, "", url.toString());
 }
 
 function formatCountdown(totalSeconds: number) {
@@ -64,8 +88,12 @@ function formatCountdown(totalSeconds: number) {
 
 export default function CheckoutPage() {
   const params = useParams<{ reference: string }>();
+  const searchParams = useSearchParams();
   const reference = params.reference;
-  const receiptRef = useRef<HTMLDivElement | null>(null);
+  const sessionIdFromUrl = useMemo(
+    () => resolveSessionId(new URLSearchParams(searchParams.toString())),
+    [searchParams],
+  );
   const [session, setSession] = useState<CheckoutSession | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [customerAmount, setCustomerAmount] = useState("");
@@ -89,9 +117,10 @@ export default function CheckoutPage() {
       setPageState("ready");
 
       try {
-        const nextAttemptReference = getStoredAttemptReference(reference);
+        const nextAttemptReference =
+          sessionIdFromUrl || getStoredAttemptReference(reference);
         setAttemptReference(nextAttemptReference);
-        const response = await merchantApi.getCheckoutSession(reference, {
+        const response = await checkoutService.getCheckoutSession(reference, {
           attemptReference: nextAttemptReference,
         });
         if (response.statusCode !== 200) {
@@ -108,6 +137,11 @@ export default function CheckoutPage() {
         }
 
         const nextSession = resolveCheckoutSession(response.data);
+        const resolvedAttemptReference =
+          nextSession.attemptReference || nextAttemptReference;
+        setAttemptReference(resolvedAttemptReference);
+        storeAttemptReference(reference, resolvedAttemptReference);
+        syncCheckoutSessionUrl(reference, resolvedAttemptReference);
         setSession(nextSession);
       } catch (error) {
         setMessage(error instanceof Error ? error.message : "Unable to load checkout.");
@@ -117,7 +151,7 @@ export default function CheckoutPage() {
     }
 
     void loadCheckout();
-  }, [reference]);
+  }, [reference, sessionIdFromUrl]);
 
   const isSuccess = session?.status === "success";
   const isFailed = session?.status === "failed" || session?.status === "expired";
@@ -164,14 +198,24 @@ export default function CheckoutPage() {
 
     try {
       const nextAttemptReference =
-        attemptReference || getStoredAttemptReference(reference);
+        session?.status === "success" || session?.status === "failed" || session?.status === "expired"
+          ? createAttemptReference(reference)
+          : attemptReference || sessionIdFromUrl || getStoredAttemptReference(reference);
       setAttemptReference(nextAttemptReference);
-      const response = await merchantApi.getCheckoutSession(reference, {
+      storeAttemptReference(reference, nextAttemptReference);
+      syncCheckoutSessionUrl(reference, nextAttemptReference);
+      const response = await checkoutService.getCheckoutSession(reference, {
         amount,
         attemptReference: nextAttemptReference,
       });
       if (response.statusCode === 200) {
-        setSession(resolveCheckoutSession(response.data));
+        const nextSession = resolveCheckoutSession(response.data);
+        const resolvedAttemptReference =
+          nextSession.attemptReference || nextAttemptReference;
+        setAttemptReference(resolvedAttemptReference);
+        storeAttemptReference(reference, resolvedAttemptReference);
+        syncCheckoutSessionUrl(reference, resolvedAttemptReference);
+        setSession(nextSession);
       } else {
         setMessage(response.message || "Unable to generate payment account.");
       }
@@ -187,11 +231,20 @@ export default function CheckoutPage() {
     setMessage(null);
 
     try {
-      const response = await merchantApi.verifyPayment(reference, {
-        attemptReference,
+      const response = await checkoutService.verifyPayment(reference, {
+        attemptReference:
+          session?.attemptReference ||
+          attemptReference ||
+          sessionIdFromUrl ||
+          undefined,
       });
       if (response.statusCode === 200 && response.data.status === "success") {
         const callbackUrl = response.data.callbackUrl || session?.callbackUrl || null;
+        if (response.data.attemptReference) {
+          setAttemptReference(response.data.attemptReference);
+          storeAttemptReference(reference, response.data.attemptReference);
+          syncCheckoutSessionUrl(reference, response.data.attemptReference);
+        }
         setSession((current) =>
           current
             ? {
@@ -199,6 +252,8 @@ export default function CheckoutPage() {
                 status: response.data.status,
                 paidAt: response.data.paidAt,
                 expiresAt: response.data.expiresAt,
+                attemptReference:
+                  response.data.attemptReference || current.attemptReference,
                 callbackUrl,
               }
             : current,
@@ -214,18 +269,24 @@ export default function CheckoutPage() {
         return;
       }
 
-      setSession((current) =>
-        current
-          ? {
-              ...current,
-              status:
-                response.statusCode === 200 &&
-                ["failed", "expired"].includes(response.data.status)
-                  ? response.data.status
-                  : current.status,
-            }
-          : current,
-      );
+      if (response.data?.attemptReference) {
+        setAttemptReference(response.data.attemptReference);
+        storeAttemptReference(reference, response.data.attemptReference);
+        syncCheckoutSessionUrl(reference, response.data.attemptReference);
+      }
+      setSession((current) => {
+        if (!current) return current;
+
+        return {
+          ...current,
+          ...response.data,
+          status:
+            response.statusCode === 200 &&
+            ["failed", "expired"].includes(response.data.status)
+              ? response.data.status
+              : current.status,
+        };
+      });
       setMessage("Payment has not been confirmed yet.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Payment has not been confirmed yet.");
@@ -249,7 +310,8 @@ export default function CheckoutPage() {
     "Aris Pay Merchant";
   const receiptBankName = session?.virtualAccount?.bankName || "SafeHaven MFB";
   const receiptAccountNumber = session?.virtualAccount?.accountNumber || "--";
-  const receiptSourceBankName = "SafeHaven MFB";
+  const receiptSourceBankName = "Customer bank";
+  const receiptSourceAccountNumber = "--";
   const receiptSourceAccountName =
     session?.customer?.name ||
     session?.customer?.email ||
@@ -257,14 +319,29 @@ export default function CheckoutPage() {
   const receiptNarration = session?.description || session?.reference || "--";
 
   async function handleDownloadReceipt() {
-    if (!receiptRef.current || !isSuccess) {
+    if (!isSuccess) {
       return;
     }
 
     setIsDownloadingReceipt(true);
 
     try {
-      await downloadReceiptPdf(receiptRef.current, `${reference}-receipt.pdf`);
+      await downloadReceiptPdf(
+        {
+          amount: receiptAmount,
+          paidAt: session?.paidAt,
+          status: session?.status,
+          sessionId: receiptSessionId,
+          recipientName: receiptRecipientName,
+          bankName: receiptBankName,
+          accountNumber: receiptAccountNumber,
+          sourceBankName: receiptSourceBankName,
+          sourceAccountNumber: receiptSourceAccountNumber,
+          sourceAccountName: receiptSourceAccountName,
+          narration: receiptNarration,
+        },
+        `${reference}-receipt.pdf`,
+      );
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Unable to download receipt.");
     } finally {
@@ -394,27 +471,6 @@ export default function CheckoutPage() {
           </div>
         </div>
       </Card>
-      {isSuccess ? (
-        <div
-          aria-hidden="true"
-          className="pointer-events-none fixed left-[-200vw] top-0 opacity-0"
-        >
-          <div ref={receiptRef}>
-            <TransactionReceipt
-              amount={receiptAmount}
-              paidAt={session?.paidAt}
-              status={session?.status}
-              sessionId={receiptSessionId}
-              recipientName={receiptRecipientName}
-              bankName={receiptBankName}
-              accountNumber={receiptAccountNumber}
-              sourceBankName={receiptSourceBankName}
-              sourceAccountName={receiptSourceAccountName}
-              narration={receiptNarration}
-            />
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }

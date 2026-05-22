@@ -14,7 +14,7 @@ import {
   GoogleIcon,
   LinkedInIcon,
 } from "@/features/auth/components/auth-shell";
-import { merchantApi } from "@/lib/merchant-api";
+import { authService } from "@/services/auth.service";
 import { useBusinessSession } from "@/store/business-session-provider";
 
 export default function LoginPage() {
@@ -35,7 +35,7 @@ export default function LoginPage() {
     setSubmitting(true);
 
     try {
-      const response = await merchantApi.login(emailAddress, password);
+      const response = await authService.login(emailAddress, password);
       if (response.statusCode !== 200 || !response.data?.token) {
         toast.error(response.message || "Unable to sign in.");
         return;
@@ -56,11 +56,11 @@ export default function LoginPage() {
   return (
     <AuthGuard>
       <AuthPageShell>
-        <p className="mt-[100px] text-[20px] font-normal">
-          Sign in to you account.
+        <p className="mt-12 text-[20px] font-normal sm:mt-20 lg:mt-24">
+          Sign in to your account.
         </p>
 
-        <form className="grid gap-6 mt-8" onSubmit={handleSubmit}>
+        <form className="mt-8 grid gap-5 sm:gap-6" onSubmit={handleSubmit}>
           <Input
             label="Email"
             type="email"
@@ -108,7 +108,7 @@ export default function LoginPage() {
           </Button>
         </form>
 
-        <div className="mt-10 flex justify-center gap-5">
+        <div className="mt-10 flex flex-wrap justify-center gap-4 sm:gap-5">
           <AuthSocialButton label="Continue with Google">
             <GoogleIcon />
           </AuthSocialButton>
@@ -123,7 +123,7 @@ export default function LoginPage() {
           </AuthSocialButton>
         </div>
 
-        <div className="mt-20 text-center">
+        <div className="mt-12 text-center sm:mt-16 lg:mt-20">
           <Link
             href="/verify-email"
             className="text-[15px] text-white underline decoration-white/70 underline-offset-2"

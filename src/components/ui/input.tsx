@@ -33,16 +33,20 @@ const fieldStateClass: Record<FieldState, string> = {
 };
 
 const dashboardFieldStateClass: Record<FieldState, string> = {
-  default: "border-transparent bg-[#f3f5f8]",
-  focus: "border-[#9fc5ff] bg-[#f3f5f8] shadow-[0_0_0_1px_rgba(159,197,255,0.55)]",
-  success: "border-transparent bg-[#f3f5f8]",
-  error: "border-[#f8b8c0] bg-[#fff4f5]",
+  default:
+    "border-[var(--border)] bg-white shadow-[inset_0_0_0_1px_rgba(216,226,236,0.95)]",
+  focus:
+    "border-[var(--brand-soft-2)] bg-white shadow-[inset_0_0_0_1px_rgba(10,146,81,0.18),0_0_0_1px_rgba(10,146,81,0.14)]",
+  success:
+    "border-[var(--border)] bg-white shadow-[inset_0_0_0_1px_rgba(216,226,236,0.95)]",
+  error:
+    "border-[#f8b8c0] bg-[#fff4f5] shadow-[inset_0_0_0_1px_rgba(248,184,192,0.9)]",
 };
 
 const fieldSizeClass = {
-  sm: "h-9",
-  md: "h-10",
-  lg: "h-10",
+  sm: "h-10",
+  md: "h-11",
+  lg: "h-[46px]",
 };
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
@@ -116,15 +120,16 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         </span>
       ) : null}
 
-      <span
-        className={cn(
-          "flex w-full items-center gap-3 rounded-[10px] border px-4 transition",
-          isDashboardInput
-            ? "focus-within:border-[#9fc5ff] focus-within:shadow-[0_0_0_1px_rgba(159,197,255,0.55)]"
-            : "focus-within:border-[#b47aea] focus-within:shadow-[0_0_0_1px_rgba(180,122,234,0.35)]",
+        <span
+          className={cn(
+          "flex w-full items-center gap-3 rounded-[8px] border px-4 transition",
+            isDashboardInput
+              ? "focus-within:border-[var(--brand-soft-2)] focus-within:shadow-[0_0_0_1px_rgba(10,146,81,0.14)]"
+              : "focus-within:border-[#b47aea] focus-within:shadow-[0_0_0_1px_rgba(180,122,234,0.35)]",
           fieldSizeClass[fieldSize],
           (isDashboardInput ? dashboardFieldStateClass : fieldStateClass)[resolvedState],
-          disabled && "cursor-not-allowed border-transparent bg-[#eceef3] opacity-100",
+          disabled &&
+            "cursor-not-allowed border-[#d8e2ec] bg-[#eceef3] opacity-100 shadow-[inset_0_0_0_1px_rgba(216,226,236,0.95)]",
           fieldClassName,
         )}
       >
@@ -135,9 +140,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
           {label && labelPlacement === "inside" ? (
             <span
               className={cn(
-                "block text-[12px] font-medium leading-[1.15] text-[#98a2b3]",
-                labelClassName,
-              )}
+              "block text-[12px] font-medium leading-[1.15] text-[#98a2b3]",
+              labelClassName,
+            )}
             >
               {label}
             </span>
@@ -152,7 +157,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
             disabled={disabled}
             aria-invalid={Boolean(error)}
             className={cn(
-              "h-5 w-full min-w-0 bg-transparent text-[14px] font-medium text-[#252838] outline-none placeholder:text-[#a4a4ad] disabled:cursor-not-allowed disabled:text-[#a4a4ad]",
+              "h-5 w-full min-w-0 bg-transparent text-[14px] font-medium text-[#252838] outline-none placeholder:text-[#98a2b3] disabled:cursor-not-allowed disabled:text-[#a4a4ad]",
               labelPlacement === "inside" && "mt-1",
               error && "text-[#d33a44] placeholder:text-[#d33a44]",
               className,

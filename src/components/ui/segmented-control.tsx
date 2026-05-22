@@ -23,11 +23,10 @@ export function SegmentedControl({
   return (
     <div
       className={cn(
-        "inline-grid rounded-[8px] bg-transparent p-0",
-        size === "sm" ? "gap-2" : "gap-2",
+        "flex flex-wrap rounded-[8px] bg-transparent p-0",
+        size === "sm" ? "gap-1.5" : "gap-2",
         className,
       )}
-      style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}
     >
       {items.map((item) => {
         const selected = value === item.value;
@@ -38,8 +37,10 @@ export function SegmentedControl({
             type="button"
             onClick={() => onChange(item.value)}
             className={cn(
-              "rounded-[6px] text-center font-semibold transition",
-              size === "sm" ? "px-4 py-2 text-[12px]" : "px-4 py-2.5 text-[13px]",
+              "min-w-0 rounded-[6px] text-center font-semibold transition",
+              size === "sm"
+                ? "px-3 py-2 text-[12px] sm:px-4"
+                : "px-4 py-2.5 text-[13px]",
               selected
                 ? "bg-[#e3f4ec] text-[#007a3d]"
                 : "text-[#667085] hover:bg-white/70 hover:text-[#344054]",

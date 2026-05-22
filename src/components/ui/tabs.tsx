@@ -15,7 +15,7 @@ export function Tabs({
       onChange={onChange}
       items={items}
       size="sm"
-      className="mb-5 w-full max-w-fit gap-1.5 rounded-[10px] border border-[#e4e7ec] bg-[#f8fafb] p-1"
+      className="mb-4 w-full rounded-[8px] border border-[#e4e7ec] bg-[#f8fafb] p-1 sm:mb-5 sm:w-fit"
     />
   );
 }

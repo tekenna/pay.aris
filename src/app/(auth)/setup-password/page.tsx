@@ -10,7 +10,7 @@ import {
   AuthSplitShell,
   AuthTextInput,
 } from "@/features/auth/components/auth-shell";
-import { merchantApi } from "@/lib/merchant-api";
+import { authService } from "@/services/auth.service";
 import { useBusinessSession } from "@/store/business-session-provider";
 
 export default function SetupPasswordPage() {
@@ -43,7 +43,7 @@ export default function SetupPasswordPage() {
     setSubmitting(true);
 
     try {
-      const response = await merchantApi.registerBusiness({
+      const response = await authService.registerBusiness({
         token: registrationDraft.token,
         businessName: registrationDraft.businessName,
         legalName: registrationDraft.legalName,

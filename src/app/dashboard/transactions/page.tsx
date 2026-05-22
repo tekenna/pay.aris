@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
-import { TransactionReceipt } from "@/components/checkout/transaction-receipt";
 import { DetailsDrawer } from "@/components/dashboard/details-drawer";
 import { MerchantShell } from "@/components/dashboard/merchant-shell";
 import {
@@ -12,12 +11,15 @@ import {
 } from "@/components/dashboard/transactions-table";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Filter, type FilterItem } from "@/components/ui/Filter";
+import { SearchIcon } from "@/components/ui/icons";
+import { Input } from "@/components/ui/input";
 import { Pagination } from "@/components/ui/pagination";
-import { merchantApi } from "@/lib/merchant-api";
 import { downloadReceiptPdf } from "@/lib/receipt-pdf";
 import type { BusinessTransaction } from "@/lib/types";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { downloadCsvFile, formatCurrency, formatDate } from "@/lib/utils";
 import { useBusinessSession } from "@/store/business-session-provider";
+import { transactionsService } from "@/services/transactions.service";
 
 export default function TransactionsPage() {
   const { session } = useBusinessSession();
@@ -26,9 +28,34 @@ export default function TransactionsPage() {
   const [limit, setLimit] = useState(25);
   const [pages, setPages] = useState(1);
   const [status, setStatus] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [selected, setSelected] = useState<BusinessTransaction | null>(null);
   const [isDownloadingReceipt, setIsDownloadingReceipt] = useState(false);
-  const receiptRef = useRef<HTMLDivElement | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const filterItems = useMemo<FilterItem[]>(
+    () => [
+      {
+        title: "By Status",
+        type: "checkbox",
+        selectionMode: "single",
+        values: [
+          { label: "Success", value: "success" },
+          { label: "Pending", value: "pending" },
+          { label: "Failed", value: "failed" },
+        ],
+        selected: status ? [status] : [],
+      },
+      {
+        title: "By Date Range",
+        type: "date-range",
+        selected: dateFrom || dateTo ? [dateFrom, dateTo].filter(Boolean) : [],
+      },
+    ],
+    [dateFrom, dateTo, status],
+  );
 
   useEffect(() => {
     async function loadTransactions() {
@@ -40,9 +67,14 @@ export default function TransactionsPage() {
         page: String(page),
         limit: String(limit),
         ...(status ? { status } : {}),
+        ...(dateFrom ? { dateFrom } : {}),
+        ...(dateTo ? { dateTo } : {}),
       });
 
-      const response = await merchantApi.getTransactions(session.token, params);
+      const response = await transactionsService.getTransactions(
+        session.token,
+        params,
+      );
       if (response.statusCode === 200) {
         setData(response.data);
         setPages(response.pagination?.pages || 1);
@@ -50,7 +82,7 @@ export default function TransactionsPage() {
     }
 
     void loadTransactions();
-  }, [limit, page, session?.token, status]);
+  }, [dateFrom, dateTo, limit, page, session?.token, status]);
 
   const details = useMemo(
     () =>
@@ -72,6 +104,24 @@ export default function TransactionsPage() {
         : [],
     [selected],
   );
+  const filteredTransactions = useMemo(() => {
+    const pattern = searchTerm.trim().toLowerCase();
+    if (!pattern) {
+      return data;
+    }
+
+    return data.filter((item) =>
+      [
+        item.reference,
+        item.narration,
+        item.customer?.name,
+        item.customer?.email,
+        item.virtualAccount?.accountNumber,
+      ]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(pattern)),
+    );
+  }, [data, searchTerm]);
 
   const selectedTransactionType = selected ? getTransactionType(selected) : "credit";
   const receiptRecipientName = selected
@@ -104,23 +154,43 @@ export default function TransactionsPage() {
     : "--";
   const receiptSourceAccountName = selected
     ? selectedTransactionType === "debit"
-      ? selected.customer?.accountNumber ||
+      ? selected.customer?.name ||
+        selected.customer?.email ||
         session?.business.safehaven?.accountNumber ||
         "--"
       : selected.customer?.name ||
         selected.customer?.email ||
         "Customer"
     : "--";
+  const receiptSourceAccountNumber = selected
+    ? selectedTransactionType === "debit"
+      ? session?.business.safehaven?.accountNumber ||
+        session?.business.safehavenCheckout?.accountNumber ||
+        "--"
+      : selected.customer?.accountNumber || "--"
+    : "--";
 
   async function handleDownloadReceipt() {
-    if (!selected || !receiptRef.current) {
+    if (!selected) {
       return;
     }
 
     setIsDownloadingReceipt(true);
     try {
       await downloadReceiptPdf(
-        receiptRef.current,
+        {
+          amount: selected.amount,
+          paidAt: selected.paidAt || selected.createdAt,
+          status: selected.status,
+          sessionId: selected.providerReference || selected.reference,
+          recipientName: receiptRecipientName,
+          bankName: receiptBankName,
+          accountNumber: receiptAccountNumber,
+          sourceBankName: receiptSourceBankName,
+          sourceAccountNumber: receiptSourceAccountNumber,
+          sourceAccountName: receiptSourceAccountName,
+          narration: selected.narration || selected.reference,
+        },
         `${selected.reference}-receipt.pdf`,
       );
     } catch (error) {
@@ -132,40 +202,121 @@ export default function TransactionsPage() {
     }
   }
 
+  async function handleExportStatement() {
+    if (!session?.token) {
+      return;
+    }
+
+    setIsExporting(true);
+    try {
+      const params = new URLSearchParams({
+        page: "1",
+        limit: "1000",
+        ...(status ? { status } : {}),
+        ...(dateFrom ? { dateFrom } : {}),
+        ...(dateTo ? { dateTo } : {}),
+      });
+      const response = await transactionsService.getTransactions(
+        session.token,
+        params,
+      );
+      if (response.statusCode !== 200) {
+        toast.error(response.message || "Unable to export statement.");
+        return;
+      }
+
+      const rows = [
+        [
+          "Date",
+          "Reference",
+          "Status",
+          "Category",
+          "Type",
+          "Narration",
+          "Amount",
+          "Balance",
+        ],
+        ...response.data.map((item) => [
+          formatDate(item.createdAt),
+          item.reference,
+          item.status,
+          getTransactionCategory(item),
+          getTransactionType(item),
+          item.narration || "--",
+          String(item.amount ?? ""),
+          String(item.balanceAfter ?? ""),
+        ]),
+      ];
+
+      downloadCsvFile("aris-pay-transactions-statement.csv", rows);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Unable to export statement.",
+      );
+    } finally {
+      setIsExporting(false);
+    }
+  }
+
   return (
     <MerchantShell title="Transactions">
-      <Card className="overflow-hidden p-7">
-        <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+      <div className="mb-5 inline-flex rounded-[8px] border border-[var(--border)] bg-white p-2 shadow-[var(--shadow-soft)]">
+        <span className="inline-flex h-11 items-center rounded-[6px] bg-[var(--brand)] px-6 text-sm font-semibold text-white">
+          Transaction Ledger
+        </span>
+      </div>
+
+      <Card className="dashboard-surface-card overflow-hidden p-6">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p className="text-[18px] font-bold text-slate-950">All Transactions</p>
+            <p className="text-[22px] font-semibold tracking-[-0.02em] text-slate-950">
+              All Transactions
+            </p>
             <p className="mt-2 text-sm text-[#667085]">
-              A unified ledger of every payment, fee, settlement, and checkout activity.
+              Review payments, fees, settlements, and checkout activity in one place.
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-5">
-            <label className="flex items-center gap-3 text-[15px] font-medium text-[#98a2b3]">
-              Sort by:
-              <select
-                value={status}
-                onChange={(event) => {
-                  setStatus(event.target.value);
-                  setPage(1);
-                }}
-                className="h-[45px] min-w-[148px] rounded-[6px] border border-[#d8dee6] bg-white px-5 text-[15px] font-medium text-[#98a2b3] outline-none"
-              >
-                <option value="">All</option>
-                <option value="success">Completed</option>
-                <option value="pending">Pending</option>
-                <option value="failed">Failed</option>
-              </select>
-            </label>
-            <Button className="dashboard-black-button h-[45px] rounded-[10px] px-7 text-[15px] font-bold">
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              variant="outline"
+              className="min-w-[156px]"
+              loading={isExporting}
+              onClick={() => void handleExportStatement()}
+            >
               Export Statement
             </Button>
           </div>
         </div>
+        <div className="mb-6 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <div className="flex flex-1 flex-col gap-3 md:flex-row md:items-center">
+            <Input
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="Search by reference, narration, customer, or account"
+              leftIcon={<SearchIcon className="h-4 w-4" />}
+              fieldSize="lg"
+              className="w-full md:max-w-[380px]"
+            />
+            <Filter
+              filterItems={filterItems}
+              onChange={(items) => {
+                const statusItem = items.find((item) => item.title === "By Status");
+                const dateRangeItem = items.find((item) => item.title === "By Date Range");
+
+                setStatus(statusItem?.selected?.[0] ?? "");
+                setDateFrom(dateRangeItem?.selected?.[0] ?? "");
+                setDateTo(dateRangeItem?.selected?.[1] ?? "");
+                setPage(1);
+              }}
+            />
+          </div>
+          <p className="text-sm text-[#98a2b3]">
+            Showing {filteredTransactions.length} transaction
+            {filteredTransactions.length === 1 ? "" : "s"} on this page
+          </p>
+        </div>
         <TransactionsTable
-          transactions={data}
+          transactions={filteredTransactions}
           emptyMessage="No business transactions match this filter."
           onRowClick={setSelected}
         />
@@ -195,28 +346,6 @@ export default function TransactionsPage() {
         secondaryActionLabel="Close"
         onSecondaryAction={() => setSelected(null)}
       />
-
-      {selected ? (
-        <div
-          aria-hidden="true"
-          className="pointer-events-none fixed left-[-200vw] top-0 opacity-0"
-        >
-          <div ref={receiptRef}>
-            <TransactionReceipt
-              amount={selected.amount}
-              paidAt={selected.paidAt || selected.createdAt}
-              status={selected.status}
-              sessionId={selected.providerReference || selected.reference}
-              recipientName={receiptRecipientName}
-              bankName={receiptBankName}
-              accountNumber={receiptAccountNumber}
-              sourceBankName={receiptSourceBankName}
-              sourceAccountName={receiptSourceAccountName}
-              narration={selected.narration || selected.reference}
-            />
-          </div>
-        </div>
-      ) : null}
     </MerchantShell>
   );
 }

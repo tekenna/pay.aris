@@ -67,14 +67,16 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
         </span>
       ) : null}
 
-      <span
-        className={cn(
-          "flex w-full items-center gap-3 rounded-[8px] border border-transparent bg-[#f3f5f8] px-4 transition focus-within:border-[#9fc5ff] focus-within:bg-white focus-within:shadow-[0_0_0_1px_rgba(159,197,255,0.55)]",
-          fieldSize === "sm" && "h-9",
-          fieldSize === "md" && "h-10",
-          fieldSize === "lg" && "h-10",
-          error && "border-[#ff3b47] bg-white",
-          disabled && "cursor-not-allowed opacity-70",
+        <span
+          className={cn(
+          "flex w-full items-center gap-3 rounded-[8px] border border-[var(--border)] bg-white px-4 shadow-[inset_0_0_0_1px_rgba(216,226,236,0.95)] transition focus-within:border-[var(--brand-soft-2)] focus-within:bg-white focus-within:shadow-[inset_0_0_0_1px_rgba(10,146,81,0.18),0_0_0_1px_rgba(10,146,81,0.14)]",
+          fieldSize === "sm" && "h-10",
+          fieldSize === "md" && "h-11",
+          fieldSize === "lg" && "h-[46px]",
+          error &&
+            "border-[#ff3b47] bg-white shadow-[inset_0_0_0_1px_rgba(255,59,71,0.35)]",
+          disabled &&
+            "cursor-not-allowed border-[#d8e2ec] bg-[#eceef3] opacity-70 shadow-[inset_0_0_0_1px_rgba(216,226,236,0.95)]",
           fieldClassName,
         )}
       >
@@ -154,10 +156,10 @@ export function DropdownPreview({
   searchPlaceholder = "Search",
 }: DropdownProps) {
   return (
-    <div className={cn("rounded-[8px] border border-[#e4e9ef] bg-white", className)}>
+    <div className={cn("rounded-[8px] border border-[var(--border)] bg-white shadow-[var(--shadow-soft)]", className)}>
       <button
         type="button"
-        className="flex h-10 w-full items-center justify-between gap-3 rounded-t-[8px] bg-[#f3f5f8] px-4 text-left text-[14px] font-medium text-[#667085]"
+        className="flex h-11 w-full items-center justify-between gap-3 rounded-t-[8px] bg-[var(--surface-muted)] px-4 text-left text-[14px] font-medium text-[#667085]"
       >
         <span>
           {label ? (
@@ -186,8 +188,8 @@ export function DropdownPreview({
               type="button"
               onClick={() => onChange?.(option.value)}
               className={cn(
-                "flex min-h-[42px] w-full items-center gap-3 rounded-[6px] px-3 text-left text-[15px] font-medium text-[#667085] transition hover:bg-[#eef6ff]",
-                selected && "bg-[#eef6ff] text-[#005eb8]",
+                "flex min-h-[42px] w-full items-center gap-3 rounded-[6px] px-3 text-left text-[15px] font-medium text-[#667085] transition hover:bg-[#f5faf7]",
+                selected && "bg-[#eef9f1] text-[var(--brand)]",
               )}
             >
               {option.icon ? <span className="shrink-0">{option.icon}</span> : null}

@@ -8,11 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Pagination } from "@/components/ui/pagination";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { ChevronLeft } from "@/components/ui/icons";
-import { merchantApi } from "@/lib/merchant-api";
+import { ArrowDownLeftIcon, ArrowUpRightIcon, ChevronLeft } from "@/components/ui/icons";
 import type { BusinessAccountLedgerEntry, BusinessSettlementAccount } from "@/lib/types";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
 import { useBusinessSession } from "@/store/business-session-provider";
+import { accountsService } from "@/services/accounts.service";
 
 export default function AccountDetailsPage() {
   const params = useParams<{ id: string }>();
@@ -33,7 +33,11 @@ export default function AccountDetailsPage() {
         page: String(page),
         limit: String(limit),
       });
-      const response = await merchantApi.getAccountById(session.token, params.id, searchParams);
+      const response = await accountsService.getAccountById(
+        session.token,
+        params.id,
+        searchParams,
+      );
       if (response.statusCode === 200) {
         setAccount(response.data.account);
         setLedger(response.data.ledger);
@@ -46,7 +50,9 @@ export default function AccountDetailsPage() {
 
   const accountTitle = useMemo(() => {
     if (!account) return "Account";
-    return account.id === "checkout" ? "Checkout Account" : "Primary Settlement Account";
+    if (account.kind === "checkout") return "Checkout Account";
+    if (account.kind === "primary") return "Primary Settlement Account";
+    return "Settlement Account";
   }, [account]);
 
   return (
@@ -108,13 +114,26 @@ export default function AccountDetailsPage() {
               {ledger.map((entry) => (
                 <tr key={entry.id} className="border-b border-slate-100">
                   <td className="px-4 py-5">
-                    <span
-                      className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
-                        entry.type === "credit" ? "bg-[#e8f6ef] text-[#0a9550]" : "bg-[#fff4e5] text-[#b54708]"
-                      }`}
-                    >
-                      {entry.type === "credit" ? "Credit" : "Debit"}
-                    </span>
+                    <div className="inline-flex items-center gap-3">
+                      <span
+                        className={`inline-flex h-10 w-10 items-center justify-center rounded-full ${
+                          entry.type === "credit" ? "bg-[#e8f6ef] text-[#12b76a]" : "bg-[#fff1f3] text-[#f04438]"
+                        }`}
+                      >
+                        {entry.type === "credit" ? (
+                          <ArrowDownLeftIcon className="h-4 w-4" />
+                        ) : (
+                          <ArrowUpRightIcon className="h-4 w-4" />
+                        )}
+                      </span>
+                      <span
+                        className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                          entry.type === "credit" ? "bg-[#e8f6ef] text-[#0a9550]" : "bg-[#fff4e5] text-[#b54708]"
+                        }`}
+                      >
+                        {entry.type === "credit" ? "Credit" : "Debit"}
+                      </span>
+                    </div>
                   </td>
                   <td className="px-4 py-5">
                     <p className="font-semibold text-[#101828]">{entry.counterpartyName || "--"}</p>
@@ -124,7 +143,10 @@ export default function AccountDetailsPage() {
                   </td>
                   <td className="px-4 py-5 text-[#344054]">{entry.reference}</td>
                   <td className="px-4 py-5">
-                    <p className="font-semibold text-[#101828]">{formatCurrency(entry.amount)}</p>
+                    <p className={`font-semibold ${entry.type === "credit" ? "text-[#12b76a]" : "text-[#f04438]"}`}>
+                      {entry.type === "debit" ? "- " : ""}
+                      {formatCurrency(Math.abs(entry.amount))}
+                    </p>
                     {entry.fee ? <p className="mt-1 text-xs text-[#98a2b3]">Fee: {formatCurrency(entry.fee)}</p> : null}
                   </td>
                   <td className="px-4 py-5">
