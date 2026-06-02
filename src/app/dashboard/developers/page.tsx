@@ -34,6 +34,11 @@ const keyFallbacks = {
 };
 
 const DOCS_URL = "https://docs.ariswallex.com";
+const GENERATED_KEY_STORAGE_PREFIX = "aris-pay.generated-secret-key";
+
+function getGeneratedKeyStorageKey(environment: "live" | "test") {
+  return `${GENERATED_KEY_STORAGE_PREFIX}.${environment}`;
+}
 
 export default function DevelopersPage() {
   const { session } = useBusinessSession();
@@ -55,6 +60,31 @@ export default function DevelopersPage() {
   const [logPage, setLogPage] = useState(1);
   const [logPages, setLogPages] = useState(1);
   const [message, setMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const nextGeneratedKeys: Record<"live" | "test", GeneratedKeyState> = {
+      live: {},
+      test: {},
+    };
+
+    (["live", "test"] as const).forEach((environment) => {
+      const storedSecretKey = window.localStorage.getItem(
+        getGeneratedKeyStorageKey(environment),
+      );
+
+      if (storedSecretKey) {
+        nextGeneratedKeys[environment] = {
+          secretKey: storedSecretKey,
+        };
+      }
+    });
+
+    setGeneratedKeys(nextGeneratedKeys);
+  }, []);
 
   useEffect(() => {
     async function loadData() {
@@ -107,6 +137,13 @@ export default function DevelopersPage() {
 
     setMessage(response.message);
     if (response.statusCode === 200) {
+      if (typeof window !== "undefined" && response.data?.secretKey) {
+        window.localStorage.setItem(
+          getGeneratedKeyStorageKey(environment),
+          response.data.secretKey,
+        );
+      }
+
       setGeneratedKeys((current) => ({
         ...current,
         [environment]: {
@@ -143,16 +180,15 @@ export default function DevelopersPage() {
             env="live"
             keys={apiKeys.live}
             generatedKeys={generatedKeys.live}
+            onGenerate={handleGenerate}
           />
           <ApiKeySection
             title="Test API Keys"
             env="test"
             keys={apiKeys.test}
             generatedKeys={generatedKeys.test}
+            onGenerate={handleGenerate}
           />
-          <div className="mt-12 flex justify-end">
-            <Button className="dashboard-black-button h-[54px] rounded-[10px] px-9 text-[16px] font-bold" onClick={() => handleGenerate("live")}>Regenerate Keys</Button>
-          </div>
         </Card>
       ) : null}
 
@@ -503,11 +539,13 @@ function ApiKeySection({
   env,
   keys,
   generatedKeys,
+  onGenerate,
 }: {
   title: string;
   env: "live" | "test";
   keys?: ApiKeyEnvironment;
   generatedKeys?: GeneratedKeyState;
+  onGenerate: (environment: "live" | "test") => Promise<void>;
 }) {
   const fallback = keyFallbacks[env];
   const rows = [
@@ -524,7 +562,17 @@ function ApiKeySection({
 
   return (
     <section className="mb-8 last:mb-0">
-      <p className="mb-5 text-[15px] font-bold text-[#202939]">{title}</p>
+      <div className="mb-5 flex items-center justify-between gap-4">
+        <p className="text-[15px] font-bold text-[#202939]">{title}</p>
+        <Button
+          className="dashboard-black-button h-[42px] rounded-[10px] px-5 text-[14px] font-bold"
+          onClick={() => {
+            void onGenerate(env);
+          }}
+        >
+          {keys?.publicKey ? "Regenerate Key" : "Generate Key"}
+        </Button>
+      </div>
       <div className="rounded-[18px] bg-[#f1f3f6] px-5 py-6">
         <div className="grid gap-5">
           {rows.map((row) => (
