@@ -92,6 +92,33 @@ export default function TransactionsPage() {
             { label: "Status", value: selected.status },
             { label: "Category", value: getTransactionCategory(selected) },
             { label: "Type", value: getTransactionType(selected) },
+            ...(getTransactionType(selected) === "debit"
+              ? [
+                  {
+                    label: "Transfer Amount",
+                    value: formatCurrency(selected.amount, selected.currency),
+                  },
+                  ...(Number(selected.fee ?? 0) > 0
+                    ? [
+                        {
+                          label: "Fee",
+                          value: formatCurrency(selected.fee, selected.currency),
+                        },
+                      ]
+                    : []),
+                  ...(Number(selected.totalDebit ?? 0) > 0
+                    ? [
+                        {
+                          label: "Total Debit",
+                          value: formatCurrency(
+                            selected.totalDebit,
+                            selected.currency,
+                          ),
+                        },
+                      ]
+                    : []),
+                ]
+              : []),
             { label: "Balance", value: formatCurrency(selected.balanceAfter, selected.currency) },
             { label: "Session ID", value: selected.providerReference || selected.reference },
             { label: "Transaction Method", value: selected.paymentMethod || selected.channel || "Transfer" },
@@ -234,6 +261,8 @@ export default function TransactionsPage() {
           "Type",
           "Narration",
           "Amount",
+          "Fee",
+          "Total Debit",
           "Balance",
         ],
         ...response.data.map((item) => [
@@ -244,6 +273,8 @@ export default function TransactionsPage() {
           getTransactionType(item),
           item.narration || "--",
           String(item.amount ?? ""),
+          String(item.fee ?? ""),
+          String(item.totalDebit ?? ""),
           String(item.balanceAfter ?? ""),
         ]),
       ];
@@ -336,7 +367,16 @@ export default function TransactionsPage() {
         open={Boolean(selected)}
         onClose={() => setSelected(null)}
         title="Transaction Details"
-        amount={formatCurrency(selected?.amount, selected?.currency)}
+        amount={
+          selected
+            ? getTransactionType(selected) === "debit"
+              ? `- ${formatCurrency(
+                  Math.abs(Number(selected.totalDebit ?? selected.amount ?? 0)),
+                  selected.currency,
+                )}`
+              : formatCurrency(selected.amount, selected.currency)
+            : "--"
+        }
         status={selected?.status || "pending"}
         timestamp={selected?.paidAt || selected?.createdAt}
         fields={details}

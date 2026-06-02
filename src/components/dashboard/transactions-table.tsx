@@ -124,6 +124,14 @@ export function TransactionsTable({
           {transactions.map((item) => {
             const transactionType = getTransactionType(item);
             const transactionCategory = getTransactionCategory(item);
+            const signedAmount =
+              transactionType === "debit"
+                ? `- ${formatCurrency(
+                    Math.abs(Number(item.totalDebit ?? item.amount ?? 0)),
+                    item.currency,
+                  )}`
+                : formatCurrency(item.amount, item.currency);
+            const feeAmount = Number(item.fee ?? 0);
 
             return (
               <tr
@@ -153,8 +161,17 @@ export function TransactionsTable({
                 <td className="border-b border-[var(--border)] px-6 py-6">
                   <TransactionTypeBadge type={transactionType} />
                 </td>
-                <td className="whitespace-nowrap border-b border-[var(--border)] px-6 py-6 text-right font-bold text-[#344054]">
-                  {formatCurrency(item.amount, item.currency)}
+                <td
+                  className={`whitespace-nowrap border-b border-[var(--border)] px-6 py-6 text-right font-bold ${
+                    transactionType === "debit" ? "text-[#d92d20]" : "text-[#0a9251]"
+                  }`}
+                >
+                  <span>{signedAmount}</span>
+                  {transactionType === "debit" && feeAmount > 0 ? (
+                    <span className="mt-1 block text-[12px] font-medium text-[#98a2b3]">
+                      Fee: {formatCurrency(feeAmount, item.currency)}
+                    </span>
+                  ) : null}
                 </td>
                 <td className="whitespace-nowrap border-b border-[var(--border)] px-6 py-6 text-right font-bold text-[#344054]">
                   {formatCurrency(item.balanceAfter, item.currency)}

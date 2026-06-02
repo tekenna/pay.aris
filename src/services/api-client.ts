@@ -14,7 +14,7 @@ import {
 } from "@/services/session-storage";
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5173/api";
+  process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.ariswallex.com/api";
 
 type RetriableRequestConfig = InternalAxiosRequestConfig & {
   _retryOnAuthFailure?: boolean;

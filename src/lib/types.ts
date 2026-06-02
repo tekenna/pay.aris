@@ -227,6 +227,8 @@ export type BusinessTransaction = {
   providerReference?: string | null;
   status: string;
   amount: number;
+  fee?: number | null;
+  totalDebit?: number | null;
   currency: string;
   direction?: "credit" | "debit" | string | null;
   category?: "payment_link" | "checkout" | "transfer" | "checkout_fee" | string | null;
@@ -387,19 +389,25 @@ export type MerchantFeeSchedule = {
   checkout: Array<{
     key: string;
     label: string;
+    minAmount: number;
+    maxAmount: number | null;
     providerFeeType: "flat" | "percentage";
     providerFeeValue: number;
     providerFeeLabel: string;
     markupFee: number;
+    totalFeeValue: number | null;
     totalFeeLabel: string;
   }>;
   transfer: Array<{
     key: string;
     label: string;
+    minAmount: number;
+    maxAmount: number | null;
     providerFeeType: "flat" | "percentage";
     providerFeeValue: number;
     providerFeeLabel: string;
     markupFee: number;
+    totalFeeValue: number | null;
     totalFeeLabel: string;
   }>;
   verification: Array<{

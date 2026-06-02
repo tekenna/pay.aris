@@ -26,16 +26,14 @@ type GeneratedKeyState = {
 
 const keyFallbacks = {
   live: {
-    publicKey: "PYY-PUB_live_a1b2c3d4e5f6g7h8i9j0",
     secretKeyPreview: "PYY-SEC_live_a1b2c3d4e5f6g7h8i9j0",
-    encryptionKey: "PYY-ENC_live_a1b2c3d4e5f6g7h8i9j0",
   },
   test: {
-    publicKey: "pyy_live_a1b2c3d4e5f6g7h8i9j0",
     secretKeyPreview: "pk_live_a1b2c3d4e5f6g7h8i9j0",
-    encryptionKey: "pk_live_a1b2c3d4e5f6g7h8i9j0",
   },
 };
+
+const DOCS_URL = "https://docs.ariswallex.com";
 
 export default function DevelopersPage() {
   const { session } = useBusinessSession();
@@ -234,7 +232,14 @@ export default function DevelopersPage() {
               <button
                 key={title}
                 type="button"
-                onClick={() => setDocsModal(title.toLowerCase() as "guides" | "documentation")}
+                onClick={() => {
+                  if (title === "Documentation") {
+                    window.open(DOCS_URL, "_blank", "noopener,noreferrer");
+                    return;
+                  }
+
+                  setDocsModal("guides");
+                }}
                 className="rounded-[12px] bg-slate-50 p-6 transition hover:bg-emerald-50"
               >
                 <p className="text-lg font-semibold text-slate-900">{title}</p>
@@ -506,21 +511,15 @@ function ApiKeySection({
 }) {
   const fallback = keyFallbacks[env];
   const rows = [
-    [
-      "Public Key",
-      "Use this for client-side integration",
-      generatedKeys?.publicKey || keys?.publicKey || fallback.publicKey,
-    ],
-    [
-      "Secret Key",
-      "Use this for server-side integration",
-      generatedKeys?.secretKey || keys?.secretKeyPreview || fallback.secretKeyPreview,
-    ],
-    [
-      "Encryption Key",
-      "Use this for server-side integration",
-      fallback.encryptionKey,
-    ],
+    {
+      label: "Secret Key",
+      hint: "Use this for merchant server-side integration",
+      displayValue:
+        generatedKeys?.secretKey ||
+        keys?.secretKeyPreview ||
+        fallback.secretKeyPreview,
+      copyValue: generatedKeys?.secretKey || null,
+    },
   ];
 
   return (
@@ -528,13 +527,16 @@ function ApiKeySection({
       <p className="mb-5 text-[15px] font-bold text-[#202939]">{title}</p>
       <div className="rounded-[18px] bg-[#f1f3f6] px-5 py-6">
         <div className="grid gap-5">
-          {rows.map(([label, hint, value]) => (
-            <div key={label} className="grid items-center gap-4 md:grid-cols-[minmax(0,1fr)_290px]">
+          {rows.map((row) => (
+            <div key={row.label} className="grid items-center gap-4 md:grid-cols-[minmax(0,1fr)_290px]">
               <div>
-                <p className="text-[13px] font-bold text-[#202939]">{label}</p>
-                <p className="mt-2 text-[13px] font-medium text-[#667085]">{hint}</p>
+                <p className="text-[13px] font-bold text-[#202939]">{row.label}</p>
+                <p className="mt-2 text-[13px] font-medium text-[#667085]">{row.hint}</p>
               </div>
-              <MaskedKeyValue value={value} />
+              <MaskedKeyValue
+                value={row.displayValue}
+                copyValue={row.copyValue}
+              />
             </div>
           ))}
         </div>
@@ -551,29 +553,49 @@ function maskKey(value: string) {
   return `*****....${value.slice(-6)}`;
 }
 
-function MaskedKeyValue({ value }: { value: string }) {
+function MaskedKeyValue({
+  value,
+  copyValue,
+}: {
+  value: string;
+  copyValue?: string | null;
+}) {
   const [copied, setCopied] = useState(false);
+  const [showUnavailable, setShowUnavailable] = useState(false);
 
   async function handleCopy() {
-    await navigator.clipboard.writeText(value);
+    if (!copyValue) {
+      setShowUnavailable(true);
+      window.setTimeout(() => setShowUnavailable(false), 1800);
+      return;
+    }
+
+    await navigator.clipboard.writeText(copyValue);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1200);
   }
 
   return (
-    <div className="flex items-center justify-between gap-3 rounded-[6px] bg-white px-4 py-3 text-[14px] font-semibold text-[#202939]">
-      <span className="truncate">{maskKey(value)}</span>
-      <button
-        type="button"
-        onClick={() => {
-          void handleCopy();
-        }}
-        className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] bg-[#f2f4f7] text-[#344054] transition hover:bg-[#e9eef4]"
-        aria-label="Copy key"
-        title="Copy key"
-      >
-        {copied ? <CheckIcon className="h-4 w-4" /> : <CopyIcon className="h-4 w-4" />}
-      </button>
+    <div className="rounded-[6px] bg-white px-4 py-3 text-[14px] font-semibold text-[#202939]">
+      <div className="flex items-center justify-between gap-3">
+        <span className="truncate">{maskKey(value)}</span>
+        <button
+          type="button"
+          onClick={() => {
+            void handleCopy();
+          }}
+          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] bg-[#f2f4f7] text-[#344054] transition hover:bg-[#e9eef4]"
+          aria-label={copyValue ? "Copy key" : "Full key not available to copy"}
+          title={copyValue ? "Copy key" : "Regenerate to reveal and copy the full key"}
+        >
+          {copied ? <CheckIcon className="h-4 w-4" /> : <CopyIcon className="h-4 w-4" />}
+        </button>
+      </div>
+      {!copyValue || showUnavailable ? (
+        <p className="mt-2 text-[11px] font-medium text-[#98a2b3]">
+          Full secret is only available immediately after generation or regeneration.
+        </p>
+      ) : null}
     </div>
   );
 }

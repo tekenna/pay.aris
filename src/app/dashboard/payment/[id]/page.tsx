@@ -317,7 +317,7 @@ export default function PaymentDetailsPage() {
         <button
           type="button"
           onClick={() => router.push("/dashboard/payment")}
-          className="-mt-6 mb-10 inline-flex items-center gap-2 text-sm font-bold text-[#344054]"
+          className="-mt-6 mb-10  inline-flex w-fit items-center gap-2 text-sm font-bold text-[#344054]"
         >
           <ChevronLeft className="h-4 w-4" />
           Back

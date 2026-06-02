@@ -31,16 +31,50 @@ import {
 import type {
   Business,
   BusinessSettlementAccount,
+  MerchantFeeSchedule,
   MerchantBank,
   RecentBusinessTransfer,
   ValidatedTransferAccount,
 } from "@/lib/types";
 import { formatCurrency } from "@/lib/utils";
 import { accountsService } from "@/services/accounts.service";
+import { paymentsService } from "@/services/payments.service";
 import { useBusinessSession } from "@/store/business-session-provider";
 
 type DrawerStep = "confirm" | "success" | null;
 type TransferPinModalStep = "closed" | "create" | "enter-pin";
+
+function calculateTransferFee(
+  feeSchedule: MerchantFeeSchedule | null,
+  amount: number,
+) {
+  if (!feeSchedule || !Number.isFinite(amount) || amount <= 0) {
+    return 0;
+  }
+
+  const band = feeSchedule.transfer.find((item) => {
+    if (amount < item.minAmount) {
+      return false;
+    }
+
+    if (item.maxAmount !== null && amount > item.maxAmount) {
+      return false;
+    }
+
+    return true;
+  });
+
+  if (!band) {
+    return 0;
+  }
+
+  const providerFeeAmount =
+    band.providerFeeType === "percentage"
+      ? Number(((amount * band.providerFeeValue) / 100).toFixed(2))
+      : band.providerFeeValue;
+
+  return Number((providerFeeAmount + band.markupFee).toFixed(2));
+}
 
 function Toggle({
   checked,
@@ -124,7 +158,11 @@ function ActionRow({
     );
   }
 
-  return <div className="flex items-center justify-between gap-4 px-3 py-3">{content}</div>;
+  return (
+    <div className="flex items-center justify-between gap-4 px-3 py-3">
+      {content}
+    </div>
+  );
 }
 
 function mapMerchantBank(bank: MerchantBank): Bank {
@@ -171,6 +209,24 @@ function buildBusinessAccounts(
   return profile?.settlementAccounts ?? [];
 }
 
+function getDefaultWithdrawalAccount(
+  accounts: BusinessSettlementAccount[],
+): BusinessSettlementAccount | null {
+  if (!accounts.length) {
+    return null;
+  }
+
+  return (
+    accounts.find(
+      (account) => account.kind === "checkout" && Number(account.balance ?? 0) > 0,
+    ) ||
+    accounts.find((account) => account.kind === "checkout") ||
+    accounts.find((account) => Number(account.balance ?? 0) > 0) ||
+    accounts[0] ||
+    null
+  );
+}
+
 function formatTransferAmountInput(value: string) {
   const sanitized = value.replace(/[^\d.]/g, "");
   const [rawInteger = "", ...rawDecimalParts] = sanitized.split(".");
@@ -191,6 +247,7 @@ export default function WithdrawPage() {
   const router = useRouter();
   const { session } = useBusinessSession();
   const [profile, setProfile] = useState<Business | null>(null);
+  const [feeSchedule, setFeeSchedule] = useState<MerchantFeeSchedule | null>(null);
   const [recipients, setRecipients] = useState<RecentBusinessTransfer[]>([]);
   const [banks, setBanks] = useState<Bank[]>(BANKS);
   const [selectedSourceAccount, setSelectedSourceAccount] =
@@ -232,11 +289,12 @@ export default function WithdrawPage() {
         return;
       }
 
-      const [profileResponse, recentTransfersResponse, banksResponse] =
+      const [profileResponse, recentTransfersResponse, banksResponse, feeScheduleResponse] =
         await Promise.all([
           accountsService.getProfile(session.token),
           accountsService.getRecentTransfers(session.token),
           accountsService.getTransferBanks(session.token),
+          paymentsService.getFeeSchedule(session.token),
         ]);
 
       if (profileResponse.statusCode === 200) {
@@ -250,6 +308,12 @@ export default function WithdrawPage() {
       if (banksResponse.statusCode === 200 && banksResponse.data.length) {
         setBanks(banksResponse.data.map(mapMerchantBank));
       }
+
+      if (feeScheduleResponse.statusCode === 200) {
+        setFeeSchedule(feeScheduleResponse.data);
+      } else {
+        setFeeSchedule(null);
+      }
     }
 
     void loadData();
@@ -259,17 +323,18 @@ export default function WithdrawPage() {
 
   useEffect(() => {
     if (accounts.length > 0 && !selectedSourceAccount) {
-      setSelectedSourceAccount(accounts[0]);
+      setSelectedSourceAccount(getDefaultWithdrawalAccount(accounts));
     } else if (
       accounts.length > 0 &&
       selectedSourceAccount &&
       !accounts.find((a) => a.id === selectedSourceAccount.id)
     ) {
-      setSelectedSourceAccount(accounts[0]);
+      setSelectedSourceAccount(getDefaultWithdrawalAccount(accounts));
     }
   }, [accounts, selectedSourceAccount]);
 
-  const activeSourceAccount = selectedSourceAccount || accounts[0] || null;
+  const activeSourceAccount =
+    selectedSourceAccount || getDefaultWithdrawalAccount(accounts);
   const accountDigits = accountNumber.replace(/\D/g, "");
   const suggestions = useMemo(
     () => getBankSuggestions(accountNumber, banks),
@@ -299,7 +364,7 @@ export default function WithdrawPage() {
     );
   }, [bankSearchTerm, banks]);
   const numericAmount = Number(amount.replace(/,/g, ""));
-  const transferFee = 100;
+  const transferFee = calculateTransferFee(feeSchedule, numericAmount);
   const totalDebit = numericAmount > 0 ? numericAmount + transferFee : 0;
   const hasPaymentPin = Boolean(
     profile?.hasPaymentPin ?? session?.business.hasPaymentPin,
@@ -398,7 +463,9 @@ export default function WithdrawPage() {
   function applyRecipient(recipient: RecentBusinessTransfer) {
     setAccountNumber(formatAccountNumber(recipient.accountNumber || ""));
     setAmount(
-      recipient.amount ? formatTransferAmountInput(String(recipient.amount)) : "",
+      recipient.amount
+        ? formatTransferAmountInput(String(recipient.amount))
+        : "",
     );
 
     const matchedBank =
@@ -583,7 +650,7 @@ export default function WithdrawPage() {
       <div className="mx-auto flex w-full max-w-[760px] flex-col gap-5 xl:ml-0">
         <Link
           href="/dashboard/accounts"
-          className="inline-flex items-center gap-2 text-sm font-medium text-slate-500"
+          className="inline-flex w-fit  items-center gap-2 text-sm font-medium text-slate-500"
         >
           <ChevronLeft className="h-4 w-4" />
           Back
@@ -700,7 +767,10 @@ export default function WithdrawPage() {
               </div>
             ) : null}
 
-            <div ref={bankListRef} className="relative rounded-[8px] border border-[var(--border)] bg-white p-1">
+            <div
+              ref={bankListRef}
+              className="relative rounded-[8px] border border-[var(--border)] bg-white p-1"
+            >
               <ActionRow
                 icon={<BankIcon className="h-5 w-5" />}
                 title={selectedBank?.name || "Select Recipient's Bank"}
@@ -720,7 +790,9 @@ export default function WithdrawPage() {
                   <div className="px-1 pb-2">
                     <Input
                       value={bankSearchTerm}
-                      onChange={(event) => setBankSearchTerm(event.target.value)}
+                      onChange={(event) =>
+                        setBankSearchTerm(event.target.value)
+                      }
                       placeholder="Search banks"
                       leftIcon={<SearchIcon className="h-4 w-4" />}
                       fieldSize="lg"
@@ -819,7 +891,9 @@ export default function WithdrawPage() {
                       <input
                         value={amount}
                         onChange={(event) =>
-                          setAmount(formatTransferAmountInput(event.target.value))
+                          setAmount(
+                            formatTransferAmountInput(event.target.value),
+                          )
                         }
                         placeholder="0.00"
                         inputMode="decimal"
@@ -829,7 +903,10 @@ export default function WithdrawPage() {
                   </div>
 
                   {activeSourceAccount ? (
-                    <div ref={sourceAccountListRef} className="relative rounded-[8px] border border-[var(--border)] bg-white p-5">
+                    <div
+                      ref={sourceAccountListRef}
+                      className="relative rounded-[8px] border border-[var(--border)] bg-white p-5"
+                    >
                       <div className="flex items-center justify-between gap-4">
                         <SectionLabel>Send From</SectionLabel>
                         <span className="text-sm font-semibold text-[#0f1728]">
@@ -896,7 +973,10 @@ export default function WithdrawPage() {
                               </div>
                               <div className="flex items-center gap-3">
                                 <p className="text-sm font-bold text-[#101828]">
-                                  {formatCurrency(account.balance, account.currency)}
+                                  {formatCurrency(
+                                    account.balance,
+                                    account.currency,
+                                  )}
                                 </p>
                                 {activeSourceAccount?.id === account.id ? (
                                   <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[var(--brand)]">
@@ -1103,8 +1183,8 @@ export default function WithdrawPage() {
         {transferPinModalStep === "create" ? (
           <div className="space-y-5">
             <div className="rounded-[18px] bg-[#f8fafb] p-5 text-sm leading-6 text-[#667085]">
-              Your transfer PIN is not set yet. Create one in Settings, then come back to
-              complete this transfer.
+              Your transfer PIN is not set yet. Create one in Settings, then
+              come back to complete this transfer.
             </div>
             <div className="flex justify-end gap-3">
               <Button
@@ -1133,7 +1213,9 @@ export default function WithdrawPage() {
               type="password"
               value={transferPin}
               onChange={(event) =>
-                setTransferPin(event.target.value.replace(/\D/g, "").slice(0, 6))
+                setTransferPin(
+                  event.target.value.replace(/\D/g, "").slice(0, 6),
+                )
               }
               fieldClassName="border-transparent bg-[#f3f5f8]"
               placeholder="Enter 6-digit PIN"
