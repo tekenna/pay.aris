@@ -8,10 +8,19 @@ import {
   useState,
 } from "react";
 import type { BusinessSession, RegistrationDraft } from "@/lib/types";
-
-const SESSION_KEY = "aris-pay.business.session";
-const REGISTRATION_KEY = "aris-pay.business.registration";
-const SESSION_EVENT = "aris-pay:session-updated";
+import { refreshBusinessAccessToken } from "@/services/api-client";
+import {
+  ACCESS_TOKEN_LIFETIME_MS,
+  clearStoredSession,
+  getStoredSession,
+  isSessionExpired,
+  REGISTRATION_KEY,
+  SESSION_EVENT,
+  SESSION_KEY,
+  setStoredSession,
+  shouldRefreshSession,
+  touchStoredSessionActivity,
+} from "@/services/session-storage";
 
 type BusinessSessionContextValue = {
   isReady: boolean;
@@ -37,11 +46,11 @@ export function BusinessSessionProvider({
   useEffect(() => {
     function syncSessionState() {
       try {
-        const storedSession = window.localStorage.getItem(SESSION_KEY);
+        const storedSession = getStoredSession();
         const storedDraft = window.sessionStorage.getItem(REGISTRATION_KEY);
 
         if (storedSession) {
-          setSessionState(JSON.parse(storedSession) as BusinessSession);
+          setSessionState(storedSession);
         } else {
           setSessionState(null);
         }
@@ -52,8 +61,7 @@ export function BusinessSessionProvider({
           setRegistrationDraftState({});
         }
       } catch {
-        window.localStorage.removeItem(SESSION_KEY);
-        window.sessionStorage.removeItem(REGISTRATION_KEY);
+        clearStoredSession();
         setSessionState(null);
         setRegistrationDraftState({});
       }
@@ -87,18 +95,96 @@ export function BusinessSessionProvider({
     };
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined" || !isReady || !session) {
+      return;
+    }
+
+    let refreshInFlight = false;
+
+    async function validateDashboardSession(markActivity = false) {
+      if (!window.location.pathname.startsWith("/dashboard")) {
+        return;
+      }
+
+      const currentSession = getStoredSession();
+      if (!currentSession || isSessionExpired(currentSession)) {
+        clearStoredSession();
+        setSessionState(null);
+        window.location.replace("/login");
+        return;
+      }
+
+      if (markActivity) {
+        touchStoredSessionActivity();
+      }
+
+      if (!refreshInFlight && shouldRefreshSession(currentSession)) {
+        refreshInFlight = true;
+        try {
+          const refreshedToken = await refreshBusinessAccessToken();
+          if (!refreshedToken) {
+            clearStoredSession();
+            setSessionState(null);
+            window.location.replace("/login");
+          }
+        } finally {
+          refreshInFlight = false;
+        }
+      }
+    }
+
+    const activityEvents: Array<keyof WindowEventMap> = [
+      "click",
+      "focus",
+      "keydown",
+      "mousemove",
+      "scroll",
+      "touchstart",
+    ];
+
+    const handleActivity = () => {
+      void validateDashboardSession(true);
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void validateDashboardSession(true);
+      }
+    };
+
+    const interval = window.setInterval(() => {
+      void validateDashboardSession(false);
+    }, Math.min(60_000, ACCESS_TOKEN_LIFETIME_MS / 4));
+
+    activityEvents.forEach((eventName) =>
+      window.addEventListener(eventName, handleActivity, { passive: true }),
+    );
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    void validateDashboardSession(false);
+
+    return () => {
+      window.clearInterval(interval);
+      activityEvents.forEach((eventName) =>
+        window.removeEventListener(eventName, handleActivity),
+      );
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [isReady, session]);
+
   const value = useMemo<BusinessSessionContextValue>(
     () => ({
       isReady,
       session,
       registrationDraft,
       setSession(nextValue) {
-        setSessionState(nextValue);
-        window.localStorage.setItem(SESSION_KEY, JSON.stringify(nextValue));
+        setStoredSession(nextValue);
+        setSessionState(getStoredSession());
       },
       clearSession() {
+        clearStoredSession();
         setSessionState(null);
-        window.localStorage.removeItem(SESSION_KEY);
       },
       setRegistrationDraft(nextValue) {
         setRegistrationDraftState(nextValue);

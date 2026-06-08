@@ -36,7 +36,7 @@ const panelClasses =
   "absolute right-0 z-50 w-[320px] rounded-2xl border border-[var(--border)] bg-white p-4 shadow-[0_24px_60px_rgba(16,24,40,0.14)]";
 
 const inputClasses =
-  "flex h-12 w-full items-center justify-between rounded-xl border border-[var(--border)] bg-white px-4 text-sm shadow-sm transition hover:border-[color:rgba(0,83,48,0.22)]";
+  "flex h-12 w-full items-center justify-between rounded-xl border border-[var(--border)] bg-white px-4 text-sm shadow-sm transition hover:border-[color:rgba(37,150,190,0.22)]";
 
 const parseDateString = (value: string) => {
   const matched = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
@@ -173,7 +173,7 @@ export function Datepicker({
               onClick={() =>
                 setViewDate((current) => new Date(current.getFullYear(), current.getMonth() - 1, 1))
               }
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[var(--surface-subtle)] text-[#667085] transition hover:bg-[color:rgba(0,83,48,0.08)] hover:text-[var(--brand)]"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[var(--surface-subtle)] text-[#667085] transition hover:bg-[color:rgba(37,150,190,0.08)] hover:text-[var(--brand)]"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
@@ -185,7 +185,7 @@ export function Datepicker({
               onClick={() =>
                 setViewDate((current) => new Date(current.getFullYear(), current.getMonth() + 1, 1))
               }
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[var(--surface-subtle)] text-[#667085] transition hover:bg-[color:rgba(0,83,48,0.08)] hover:text-[var(--brand)]"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[var(--surface-subtle)] text-[#667085] transition hover:bg-[color:rgba(37,150,190,0.08)] hover:text-[var(--brand)]"
             >
               <ChevronLeft className="h-4 w-4 rotate-180" />
             </button>
@@ -214,8 +214,8 @@ export function Datepicker({
                   onClick={() => setTempDate(date)}
                   className={`h-10 rounded-xl text-sm font-medium transition ${
                     selected
-                      ? "bg-[var(--brand)] text-white shadow-[0_10px_24px_rgba(0,83,48,0.24)]"
-                      : "bg-[var(--surface-subtle)] text-[var(--foreground)] hover:bg-[color:rgba(0,83,48,0.08)]"
+                      ? "bg-[var(--brand)] text-white shadow-[0_10px_24px_rgba(37,150,190,0.24)]"
+                      : "bg-[var(--surface-subtle)] text-[var(--foreground)] hover:bg-[color:rgba(37,150,190,0.08)]"
                   } ${isDisabled ? "cursor-not-allowed opacity-40" : ""}`}
                 >
                   {date.getDate()}
@@ -241,7 +241,7 @@ export function Datepicker({
                 setOpen(false);
                 onChange?.(tempDate);
               }}
-              className="h-10 rounded-xl bg-[var(--brand)] px-4 text-sm font-semibold text-white shadow-[0_12px_28px_rgba(0,83,48,0.24)] transition hover:opacity-95"
+              className="h-10 rounded-xl bg-[var(--brand)] px-4 text-sm font-semibold text-white shadow-[0_12px_28px_rgba(37,150,190,0.24)] transition hover:opacity-95"
             >
               Apply
             </button>

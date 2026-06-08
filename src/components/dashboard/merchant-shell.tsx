@@ -40,7 +40,12 @@ const navItems = [
 ] satisfies Array<{ href: string; label: string; icon: IconType }>;
 
 const OWNER_ADMIN_ROLES = new Set(["owner", "admin"]);
-const DEVELOPER_VISIBLE_ROLES = new Set(["owner", "admin", "developer"]);
+const DEVELOPER_VISIBLE_ROLES = new Set([
+  "owner",
+  "admin",
+  "support",
+  "developer",
+]);
 
 export function MerchantShell({
   title,
@@ -143,7 +148,7 @@ export function MerchantShell({
                 className={cn(
                   "group flex h-[52px] items-center gap-3 rounded-[8px] px-5 text-[15px] font-medium tracking-[0.01em] transition",
                   active
-                    ? "bg-[image:var(--brand-panel-active)] text-white shadow-[0_16px_30px_rgba(0,83,48,0.24)]"
+                    ? "bg-[image:var(--brand-panel-active)] text-white shadow-[0_16px_30px_rgba(37,150,190,0.24)]"
                     : "bg-transparent text-white/88 hover:bg-[var(--brand-panel-soft)] hover:text-white",
                 )}
               >
@@ -344,7 +349,7 @@ export function MerchantShell({
       {shouldBlockForCompliance ? (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/35 px-4 backdrop-blur-[1px]">
           <div className="w-full max-w-[440px] rounded-[8px] bg-white p-5 text-center shadow-[0_24px_80px_rgba(15,23,42,0.28)] sm:p-7">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#e8f6ef] text-[#0a9550]">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[var(--brand-soft)] text-[var(--brand-deep)]">
               <SettingsIcon className="h-7 w-7" />
             </div>
             <h2 className="mt-5 text-[20px] font-bold text-[#101828]">
@@ -368,14 +373,14 @@ export function MerchantShell({
               </p>
               <div className="mt-4 flex items-center justify-between border-b border-dashed border-[#d0d5dd] pb-3">
                 <span className="text-sm font-semibold text-[#344054]">Tier 2</span>
-                <span className="text-sm font-semibold text-[#0a9550]">NGN 10,000 max</span>
+                <span className="text-sm font-semibold text-[var(--brand-deep)]">NGN 10,000 max</span>
               </div>
               <p className="mt-3 text-sm text-[#667085]">
                 BVN verified. Settlement accounts are created immediately.
               </p>
               <div className="mt-4 flex items-center justify-between pb-1">
                 <span className="text-sm font-semibold text-[#344054]">Tier 3</span>
-                <span className="text-sm font-semibold text-[#0a9550]">NGN 5,000,000 max</span>
+                <span className="text-sm font-semibold text-[var(--brand-deep)]">NGN 5,000,000 max</span>
               </div>
               <p className="mt-3 text-sm text-[#667085]">
                 Upload your CAC document to unlock full business limits.

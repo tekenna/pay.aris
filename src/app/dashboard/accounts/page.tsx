@@ -76,6 +76,8 @@ export default function AccountsPage() {
     (total, account) => total + Number(account.balance ?? 0),
     0,
   );
+  const currentRole = (session?.business.currentRole || "owner").toLowerCase();
+  const canWithdraw = currentRole === "owner" || currentRole === "admin";
   const mainAccountName =
     profile?.safehaven?.accountName ||
     profile?.kyc?.settlementAccountName ||
@@ -143,12 +145,14 @@ export default function AccountsPage() {
             >
               {isRefreshing ? "Refreshing..." : "Refresh"}
             </Button>
-            <Link
-              href="/dashboard/accounts/withdraw"
-              className="inline-flex h-11 min-w-[136px] items-center justify-center rounded-[6px] bg-[var(--brand)] px-5 text-sm font-semibold text-white shadow-[0_10px_22px_rgba(10,146,81,0.18)]"
-            >
-              Withdraw
-            </Link>
+            {canWithdraw ? (
+              <Link
+                href="/dashboard/accounts/withdraw"
+                className="inline-flex h-11 min-w-[136px] items-center justify-center rounded-[6px] bg-[var(--brand)] px-5 text-sm font-semibold text-white shadow-[0_10px_22px_rgba(37,150,190,0.18)]"
+              >
+                Withdraw
+              </Link>
+            ) : null}
             <Button
               type="button"
               variant="outline"
@@ -233,7 +237,7 @@ export default function AccountsPage() {
                         {formatCurrency(account.balance, account.currency)}
                       </span>
                       <span className="py-6">
-                        <span className="inline-flex h-8 items-center rounded-[6px] bg-[#eef9f1] px-3 text-xs font-bold text-[#00884f]">
+                        <span className="inline-flex h-8 items-center rounded-[6px] bg-[var(--brand-soft)] px-3 text-xs font-bold text-[var(--brand-deep)]">
                           {account.currency}
                         </span>
                       </span>

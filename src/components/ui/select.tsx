@@ -69,7 +69,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
 
         <span
           className={cn(
-          "flex w-full items-center gap-3 rounded-[8px] border border-[var(--border)] bg-white px-4 shadow-[inset_0_0_0_1px_rgba(216,226,236,0.95)] transition focus-within:border-[var(--brand-soft-2)] focus-within:bg-white focus-within:shadow-[inset_0_0_0_1px_rgba(10,146,81,0.18),0_0_0_1px_rgba(10,146,81,0.14)]",
+          "flex w-full items-center gap-3 rounded-[8px] border border-[var(--border)] bg-white px-4 shadow-[inset_0_0_0_1px_rgba(216,226,236,0.95)] transition focus-within:border-[var(--brand-soft-2)] focus-within:bg-white focus-within:shadow-[inset_0_0_0_1px_rgba(37,150,190,0.18),0_0_0_1px_rgba(37,150,190,0.14)]",
           fieldSize === "sm" && "h-10",
           fieldSize === "md" && "h-11",
           fieldSize === "lg" && "h-[46px]",
@@ -188,8 +188,8 @@ export function DropdownPreview({
               type="button"
               onClick={() => onChange?.(option.value)}
               className={cn(
-                "flex min-h-[42px] w-full items-center gap-3 rounded-[6px] px-3 text-left text-[15px] font-medium text-[#667085] transition hover:bg-[#f5faf7]",
-                selected && "bg-[#eef9f1] text-[var(--brand)]",
+                "flex min-h-[42px] w-full items-center gap-3 rounded-[6px] px-3 text-left text-[15px] font-medium text-[#667085] transition hover:bg-[#f4fbfd]",
+                selected && "bg-[var(--brand-soft)] text-[var(--brand)]",
               )}
             >
               {option.icon ? <span className="shrink-0">{option.icon}</span> : null}

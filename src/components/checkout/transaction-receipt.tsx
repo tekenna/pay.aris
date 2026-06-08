@@ -13,10 +13,9 @@ type TransactionReceiptProps = {
   narration?: string | null;
 };
 
-const ARIS_LOGO_URL =
-  "https://res.cloudinary.com/doopxwl8l/image/upload/q_auto/f_auto/v1777482297/logo_fy7vut.png";
-const BRAND = "#0a9251";
-const BRAND_SOFT = "#eaf8ef";
+const ARIS_LOGO_URL = "/images/logo.svg";
+const BRAND = "#2596be";
+const BRAND_SOFT = "#e7f5fa";
 const TEXT = "#273142";
 const MUTED = "#6c7f9d";
 const DIVIDER = "#e6edf5";

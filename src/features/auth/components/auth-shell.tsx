@@ -2,12 +2,47 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
-import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { AuthLogo } from "@/features/auth/components/auth-logo";
+
+type AuthIllustrationVariant = "security" | "access";
+
+const authTestimonials: Record<
+  AuthIllustrationVariant,
+  {
+    badge: string;
+    title: string;
+    quote: string;
+    name: string;
+    role: string;
+  }
+> = {
+  security: {
+    badge: "Trusted for secure access",
+    title: "Keep every login, transfer, and payout protected.",
+    quote:
+      "Aris helps our team stay fast without losing confidence in the security of every payment workflow.",
+    name: "Ada Okafor",
+    role: "Operations Lead at Nexa Retail",
+  },
+  access: {
+    badge: "Built for growing teams",
+    title: "Power growth with cleaner payment operations.",
+    quote:
+      "We launch faster with Aris because checkout, transfers, and reconciliation all feel simple in one place.",
+    name: "Michael Carter",
+    role: "Finance Manager at Tekspace",
+  },
+};
+
+const authFeatureHighlights = [
+  "Create payment links in minutes.",
+  "Track settlements and transfers clearly.",
+  "Manage your team from one dashboard.",
+];
 
 export function GoogleIcon() {
   return (
@@ -34,7 +69,12 @@ export function GoogleIcon() {
 
 export function GithubIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor" aria-hidden="true">
+    <svg
+      viewBox="0 0 24 24"
+      className="h-5 w-5"
+      fill="currentColor"
+      aria-hidden="true"
+    >
       <path d="M12 2a10 10 0 0 0-3.2 19.5c.5.1.7-.2.7-.5v-1.8c-2.9.6-3.5-1.2-3.5-1.2-.5-1.1-1.1-1.4-1.1-1.4-.9-.6.1-.6.1-.6 1 0 1.6 1.1 1.6 1.1.9 1.5 2.4 1.1 3 .8.1-.7.4-1.1.7-1.3-2.3-.3-4.7-1.2-4.7-5A3.9 3.9 0 0 1 6.6 9c-.1-.3-.5-1.3.1-2.7 0 0 .9-.3 2.8 1a9.8 9.8 0 0 1 5 0c1.9-1.3 2.8-1 2.8-1 .6 1.4.2 2.4.1 2.7a3.9 3.9 0 0 1 1.1 2.7c0 3.9-2.4 4.7-4.7 5 .4.3.7.9.7 1.8V21c0 .3.2.6.7.5A10 10 0 0 0 12 2Z" />
     </svg>
   );
@@ -42,7 +82,12 @@ export function GithubIcon() {
 
 export function LinkedInIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor" aria-hidden="true">
+    <svg
+      viewBox="0 0 24 24"
+      className="h-5 w-5"
+      fill="currentColor"
+      aria-hidden="true"
+    >
       <path d="M6.9 8.8H3.8V20h3.1V8.8ZM5.4 7.3a1.8 1.8 0 1 0 0-3.6 1.8 1.8 0 0 0 0 3.6ZM20.2 13.8c0-3-1.6-5.2-4.3-5.2-1.9 0-2.8 1-3.3 1.8V8.8h-3V20h3.1v-5.6c0-1.5.3-3 2.2-3 1.8 0 1.8 1.7 1.8 3.1V20h3.1v-6.2Z" />
     </svg>
   );
@@ -52,86 +97,91 @@ export function AuthSocialButton({
   children,
   label,
   className,
+  type = "button",
+  ...props
 }: {
   children: ReactNode;
   label: string;
   className?: string;
-}) {
+} & React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
-      type="button"
+      type={type}
       aria-label={label}
-      className="flex h-[45px] w-[45px] items-center justify-center rounded-[8px] bg-white text-black shadow-[0_14px_30px_rgba(0,0,0,0.18)] transition hover:scale-105"
+      className={cn(
+        "inline-flex h-[52px] w-full items-center justify-center gap-3 rounded-[14px] border border-[#d9e3e6] bg-white px-5 text-[14px] font-medium text-[#0f1728] transition hover:border-[#bfd3d7] hover:bg-[#fbfdfd]",
+        className,
+      )}
+      {...props}
     >
-      <span className={className}>{children}</span>
+      <span className="shrink-0">{children}</span>
+      <span>{label}</span>
     </button>
   );
 }
 
-export function AuthMarketingPanel() {
-  return (
-    <aside className="relative hidden min-h-[calc(100svh-40px)] overflow-hidden rounded-[8px] bg-[#4db381] px-8 py-10 text-white lg:block xl:px-10 xl:py-12">
-      <div className="absolute right-0 top-0 h-[76px] w-[104px] rounded-bl-[8px] bg-black" />
-      <div className="absolute right-0 top-[76px] h-[78px] w-[90px] rounded-tr-[8px] bg-[#4db381]" />
+export function AuthMarketingPanel({
+  variant = "security",
+}: {
+  variant?: AuthIllustrationVariant;
+}) {
+  const testimonial = authTestimonials[variant];
 
-      <div className="relative z-10 max-w-[550px]">
-        <h2 className="text-[44px] font-semibold leading-[1.32] tracking-[-0.01em]">
-          Receive payments
-          <br />
-          without the friction.
-        </h2>
-        <p className="mt-2 text-[38px] font-semibold leading-none">&ldquo;</p>
-        <p className="mt-8 max-w-[560px] text-[17px] font-semibold leading-[1.8]">
-          &ldquo;Aris helps our team create checkout links, monitor transactions, and reconcile customer payments faster.&rdquo;
+  return (
+    <aside className="relative hidden h-screen overflow-hidden bg-[#0b4950] px-8 py-10 text-white md:flex md:flex-col md:justify-between lg:px-10 lg:py-12 xl:px-14 xl:py-14">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_14%,rgba(136,224,216,0.34),transparent_24%),radial-gradient(circle_at_70%_42%,rgba(120,208,201,0.16),transparent_28%),linear-gradient(180deg,#0d4d55_0%,#0a4349_100%)]" />
+      <div className="absolute inset-y-0 left-0 w-px bg-white/8" />
+
+      <div className="relative z-10 max-w-[540px] pt-10 xl:pt-16">
+        <p className="text-[12px] font-semibold uppercase tracking-[0.2em] text-white/70">
+          {testimonial.badge}
         </p>
-        <div className="mt-10">
-          <p className="text-[21px] font-semibold">Ada Okafor</p>
-          <p className="mt-2 text-[16px] font-semibold text-white/90">
-            Operations Lead, growing with Aris
-          </p>
-        </div>
-        <div className="mt-12 flex gap-4">
-          <button
-            type="button"
-            className="flex h-[45px] w-[58px] items-center justify-center rounded-[6px] bg-white/95 text-[#4db381]"
-            aria-label="Previous story"
-          >
-            <span className="text-2xl leading-none">←</span>
-          </button>
-          <button
-            type="button"
-            className="flex h-[45px] w-[58px] items-center justify-center rounded-[6px] bg-[#0c2118] text-white"
-            aria-label="Next story"
-          >
-            <span className="text-2xl leading-none">→</span>
-          </button>
+        <h2 className="mt-10 max-w-[520px] text-[44px] font-medium leading-[1.12] tracking-[-0.04em] text-white xl:text-[58px]">
+          {testimonial.title}
+        </h2>
+        <div className="mt-10 flex gap-4">
+          <span className="text-[52px] font-medium leading-none text-white/90">
+            &ldquo;
+          </span>
+          <div>
+            <p className="max-w-[480px] text-[18px] leading-[1.7] text-white/90">
+              {testimonial.quote}
+            </p>
+            <div className="mt-10 flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full border border-white/20 bg-white/15 text-[14px] font-semibold">
+                {testimonial.name
+                  .split(" ")
+                  .map((part) => part[0])
+                  .join("")
+                  .slice(0, 2)}
+              </div>
+              <div>
+                <p className="text-[15px] font-semibold text-white">
+                  {testimonial.name}
+                </p>
+                <p className="mt-1 text-[13px] text-white/72">
+                  {testimonial.role}
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="absolute bottom-6 left-6 right-6 z-10 rounded-[8px] bg-white px-8 py-8 text-[#17161b]">
-        <div className="absolute -right-3 -top-3 flex h-[45px] w-[45px] items-center justify-center rounded-[8px] bg-white text-black">
-          <span className="text-[26px] leading-none">✦</span>
-        </div>
-        <h3 className="max-w-[450px] text-[26px] font-semibold leading-[1.2] tracking-[-0.02em]">
-          Get paid by customers
-          <br />
-          and track every transaction
-        </h3>
-        <div className="mt-7 flex items-end justify-between gap-8">
-          <p className="max-w-[330px] text-[16px] leading-[1.45] text-black/80">
-            Manage checkout, settlement, payment records, and account activity from one secure dashboard.
+      <div className="relative z-10 mt-16">
+        <div className="flex items-center gap-4">
+          <p className="text-[12px] font-semibold uppercase tracking-[0.2em] text-white/70">
+            Why teams choose Aris
           </p>
-          <div className="flex -space-x-3">
-            {["bg-amber-200", "bg-rose-300", "bg-cyan-200"].map((color) => (
-              <span
-                key={color}
-                className={`h-8 w-8 rounded-full border-2 border-white ${color}`}
-              />
-            ))}
-            <span className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-[#17161b] text-[10px] text-white">
-              +2
-            </span>
-          </div>
+          <div className="h-px flex-1 bg-white/18" />
+        </div>
+        <div className="mt-6 grid gap-3 text-[15px] leading-7 text-white/82">
+          {authFeatureHighlights.map((feature) => (
+            <div key={feature} className="flex items-start gap-3">
+              <span className="mt-2 h-2 w-2 rounded-full bg-[#8be3d2]" />
+              <span>{feature}</span>
+            </div>
+          ))}
         </div>
       </div>
     </aside>
@@ -142,62 +192,74 @@ export function AuthPageShell({
   children,
   contentClassName,
   showMarketingPanel = true,
+  illustration = "security",
 }: {
   children: ReactNode;
   contentClassName?: string;
   showMarketingPanel?: boolean;
+  illustration?: AuthIllustrationVariant;
 }) {
   return (
-    <main className="min-h-screen bg-black p-3 text-white sm:p-5">
+    <main className="h-screen bg-[#f2f6f7]">
       <div
         className={cn(
-          "grid min-h-[calc(100svh-24px)] gap-5 sm:min-h-[calc(100svh-40px)] sm:gap-8",
-          showMarketingPanel
-            ? "lg:grid-cols-[minmax(420px,0.92fr)_minmax(560px,1fr)]"
-            : "place-items-center",
+          "mx-auto grid max-w-[1480px] overflow-hidden rounded-[26px] border border-[#d8e4e7] bg-white",
+          showMarketingPanel && "md:grid-cols-[minmax(480px,0.94fr)_minmax(0,1fr)]",
         )}
       >
-        <section className="relative flex min-h-[calc(100svh-24px)] flex-col overflow-hidden rounded-[8px] px-4 py-8 sm:min-h-[calc(100svh-40px)] sm:px-8 sm:py-10 lg:px-10">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_62%,rgba(79,179,129,0.5),transparent_26%),radial-gradient(circle_at_64%_50%,rgba(53,131,91,0.45),transparent_18%),linear-gradient(90deg,#020403_0%,#030605_44%,#08140f_100%)]" />
-          <div className="relative z-10 flex min-h-full flex-col">
-            <Link href="/" className="inline-flex w-fit">
-              <AuthLogo className="auth-logo-on-dark h-[30px] w-[154px]" />
+        <section className="relative flex h-screen flex-col bg-[#fbfcfc] px-6 py-7 sm:px-10 sm:py-10 lg:px-16 lg:py-12">
+          <div className="relative z-10 flex min-h-full flex-col items-center md:items-start">
+            <Link
+              href="/"
+              className="inline-flex w-fit self-center md:self-start"
+            >
+              <AuthLogo className="h-[30px] w-[150px]" />
             </Link>
-            <div className="auth-hidden-scrollbar flex flex-1 overflow-y-auto py-6 sm:py-8">
-              <div className={cn("w-full max-w-[448px] min-w-0", contentClassName)}>
+            <div
+              className={cn(
+                "auth-hidden-scrollbar flex flex-1 w-full items-center justify-center overflow-y-auto py-10 sm:py-12",
+                showMarketingPanel && "md:justify-start",
+              )}
+            >
+              <div
+                className={cn("w-full max-w-[456px] min-w-0", contentClassName)}
+              >
                 {children}
               </div>
             </div>
           </div>
         </section>
-        {showMarketingPanel ? <AuthMarketingPanel /> : null}
+
+        {showMarketingPanel ? (
+          <AuthMarketingPanel variant={illustration} />
+        ) : null}
       </div>
     </main>
   );
 }
 
-export function AuthIllustration({
-  variant = "security",
-}: {
-  variant?: "security" | "access";
-}) {
-  return (
-    <aside className="relative hidden min-h-screen overflow-hidden rounded-l-[50px] bg-[#005330] lg:block">
-      <Image
-        src="/images/auth.svg"
-        alt={
-          variant === "access"
-            ? "Aris payment access illustration"
-            : "Aris payment security illustration"
-        }
-        fill
-        priority
-        sizes="50vw"
-        className="object-cover object-left"
-      />
-    </aside>
-  );
-}
+// export function AuthIllustration({
+//   variant = "security",
+// }: {
+//   variant?: "security" | "access";
+// }) {
+//   return (
+//     <aside className="relative hidden min-h-screen overflow-hidden rounded-l-[50px] bg-[#005330] lg:block">
+//       <Image
+//         src="/images/auth.svg"
+//         alt={
+//           variant === "access"
+//             ? "Aris payment access illustration"
+//             : "Aris payment security illustration"
+//         }
+//         fill
+//         priority
+//         sizes="50vw"
+//         className="object-cover object-left"
+//       />
+//     </aside>
+//   );
+// }
 
 export function AuthTextInput({
   value,
@@ -229,8 +291,12 @@ export function AuthTextInput({
       required={required}
       labelPlacement="inside"
       fieldSize="md"
-      fieldClassName="rounded-[8px]"
-      className={className}
+      fieldClassName="rounded-[14px] border border-[#d9e3e6] bg-white px-4 shadow-none focus-within:border-[#0e6b71] focus-within:shadow-[0_0_0_4px_rgba(14,107,113,0.08)] disabled:bg-[#f3f6f7]"
+      labelClassName="text-[#8a98a5]"
+      className={cn(
+        "text-[14px] font-medium text-[#162033] placeholder:text-[#99a5af]",
+        className,
+      )}
     />
   );
 }
@@ -262,7 +328,7 @@ export function AuthSelectInput({
       options={options}
       labelPlacement="inside"
       fieldSize="md"
-      fieldClassName="rounded-[8px]"
+      fieldClassName="rounded-[14px] border border-[#d9e3e6] bg-white px-4 shadow-none focus-within:border-[#0e6b71] focus-within:shadow-[0_0_0_4px_rgba(14,107,113,0.08)] disabled:bg-[#f3f6f7]"
       containerClassName={className}
     />
   );
@@ -288,7 +354,10 @@ export function AuthPrimaryButton({
       disabled={disabled}
       loading={loading}
       size="lg"
-      className={className}
+      className={cn(
+        "h-[52px] rounded-[14px] bg-[#0e5961] px-6 text-[15px] font-semibold text-white shadow-none hover:bg-[#0b4d54] disabled:bg-[#b7c7ca] disabled:text-white",
+        className,
+      )}
       {...props}
     >
       {children}
@@ -306,9 +375,9 @@ export function AuthBackButton({
   return (
     <a
       href={href}
-      className="inline-flex items-center gap-2 text-[15px] font-semibold text-[#27364b]"
+      className="inline-flex items-center gap-2 text-[15px] font-semibold text-[#5f6b76] transition hover:text-[#0e5961]"
     >
-      <span className="text-[24px] leading-none">←</span>
+      <span className="text-[22px] leading-none">←</span>
       <span>{children}</span>
     </a>
   );
@@ -331,16 +400,17 @@ export function AuthSplitShell({
     <AuthPageShell
       contentClassName={contentClassName}
       showMarketingPanel={Boolean(illustration)}
+      illustration={illustration}
     >
       {title || description ? (
-        <div className="my-6 mt-12 sm:my-8 sm:mt-20 lg:mt-24">
+        <div className="mb-8 text-center md:text-left">
           {title ? (
-            <h1 className="text-[26px] font-semibold leading-[1.2] tracking-[-0.02em] text-white sm:text-[28px]">
+            <h1 className="text-[34px] font-medium leading-[1.08] tracking-[-0.04em] text-[#111827] sm:text-[40px]">
               {title}
             </h1>
           ) : null}
           {description ? (
-            <div className="mt-3 text-[15px] leading-[1.65] text-white/72 sm:text-[16px]">
+            <div className="mx-auto mt-4 max-w-[560px] text-[15px] leading-[1.75] text-[#5f6b76] sm:text-[16px] md:mx-0">
               {description}
             </div>
           ) : null}
@@ -430,7 +500,7 @@ export function AuthOtpInput({
               previousInput?.focus();
             }
           }}
-          className="h-12 min-w-0 rounded-[8px] border border-[#d9e4ea] bg-white text-center text-[18px] font-semibold text-[#27364b] outline-none transition focus:border-[#0a9550] sm:h-14"
+          className="h-12 min-w-0 rounded-[14px] border border-[#d9e3e6] bg-white text-center text-[18px] font-semibold text-[#162033] outline-none transition focus:border-[#0e6b71] focus:shadow-[0_0_0_4px_rgba(14,107,113,0.08)] sm:h-14"
         />
       ))}
     </div>
@@ -463,8 +533,10 @@ export function AuthSuccessShell({
           </svg>
         </div>
       </div>
-      <h1 className="mt-8 text-[26px] font-semibold text-white">{title}</h1>
-      <div className="mt-3 text-[17px] leading-[1.6] text-white/72">
+      <h1 className="mt-8 text-[32px] font-medium tracking-[-0.03em] text-[#111827]">
+        {title}
+      </h1>
+      <div className="mt-4 text-[16px] leading-[1.75] text-[#5f6b76]">
         {description}
       </div>
       <a href={buttonHref} className="mt-8 inline-flex w-full max-w-[378px]">

@@ -78,7 +78,7 @@ function TransactionTypeBadge({ type }: { type: "credit" | "debit" }) {
     <span
       className={
         type === "credit"
-          ? "inline-flex rounded-[6px] bg-[#eaf8ef] px-2.5 py-1 text-[12px] font-medium text-[#0a9251]"
+          ? "inline-flex rounded-[6px] bg-[var(--brand-soft)] px-2.5 py-1 text-[12px] font-medium text-[var(--brand-deep)]"
           : "inline-flex rounded-[6px] bg-[#fff1f2] px-2.5 py-1 text-[12px] font-medium text-[#d92d20]"
       }
     >
@@ -163,7 +163,7 @@ export function TransactionsTable({
                 </td>
                 <td
                   className={`whitespace-nowrap border-b border-[var(--border)] px-6 py-6 text-right font-bold ${
-                    transactionType === "debit" ? "text-[#d92d20]" : "text-[#0a9251]"
+                    transactionType === "debit" ? "text-[#d92d20]" : "text-[var(--brand-deep)]"
                   }`}
                 >
                   <span>{signedAmount}</span>

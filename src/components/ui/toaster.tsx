@@ -19,7 +19,7 @@ export function Toaster() {
         },
         success: {
           iconTheme: {
-            primary: "#0a9550",
+            primary: "#2596be",
             secondary: "#ffffff",
           },
         },

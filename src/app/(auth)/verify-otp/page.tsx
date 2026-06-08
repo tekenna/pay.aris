@@ -83,7 +83,7 @@ export default function VerifyOtpPage() {
           <>
             <div>
               Please enter the 6 digit verification code sent to{" "}
-              <span className="text-[#057f4a]">
+              <span className="font-semibold text-[#0e5961]">
                 {registrationDraft.emailAddress}
               </span>
             </div>
@@ -95,17 +95,17 @@ export default function VerifyOtpPage() {
         <div className="grid gap-9">
           <AuthOtpInput value={otp} onChange={setOtp} />
 
-          <div className="text-[14px] leading-6 text-[#667085] sm:text-[15px] sm:leading-7">
-            Didn&apos;t recieve the OTP?{" "}
+          <div className="text-[14px] leading-6 text-[#5f6b76] sm:text-[15px] sm:leading-7">
+            Didn&apos;t receive the OTP?{" "}
             <button
               type="button"
               onClick={handleResend}
-              className="font-semibold text-[#0a9550]"
+              className="font-semibold text-[#0e5961]"
             >
               Resend Code
             </button>{" "}
             or{" "}
-            <a href="/verify-email" className="font-semibold text-[#0a9550]">
+            <a href="/verify-email" className="font-semibold text-[#0e5961]">
               Change Email Address
             </a>
           </div>

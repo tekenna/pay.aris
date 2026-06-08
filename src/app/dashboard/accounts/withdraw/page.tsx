@@ -246,6 +246,8 @@ function formatTransferAmountInput(value: string) {
 export default function WithdrawPage() {
   const router = useRouter();
   const { session } = useBusinessSession();
+  const currentRole = (session?.business.currentRole || "owner").toLowerCase();
+  const canWithdraw = currentRole === "owner" || currentRole === "admin";
   const [profile, setProfile] = useState<Business | null>(null);
   const [feeSchedule, setFeeSchedule] = useState<MerchantFeeSchedule | null>(null);
   const [recipients, setRecipients] = useState<RecentBusinessTransfer[]>([]);
@@ -284,8 +286,15 @@ export default function WithdrawPage() {
   const sourceAccountListRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
+    if (session && !canWithdraw) {
+      toast.error("You do not have access to withdrawals.");
+      router.replace("/dashboard/accounts");
+    }
+  }, [canWithdraw, router, session]);
+
+  useEffect(() => {
     async function loadData() {
-      if (!session?.token) {
+      if (!session?.token || !canWithdraw) {
         return;
       }
 
@@ -317,7 +326,7 @@ export default function WithdrawPage() {
     }
 
     void loadData();
-  }, [session?.token]);
+  }, [canWithdraw, session?.token]);
 
   const accounts = useMemo(() => buildBusinessAccounts(profile), [profile]);
 
@@ -692,7 +701,7 @@ export default function WithdrawPage() {
                 fieldSize="lg"
                 fieldClassName={
                   hasVerifiedRecipient
-                    ? "h-[72px] rounded-[8px] border border-[#8dc8aa] bg-[#fbfefc] shadow-[0_0_0_1px_rgba(0,83,48,0.06)]"
+                    ? "h-[72px] rounded-[8px] border border-[#8fd0dd] bg-[#f6fcfd] shadow-[0_0_0_1px_rgba(37,150,190,0.08)]"
                     : "h-[72px] rounded-[8px] border border-[#d8e2ec] bg-[#edf2f8] shadow-[0_1px_2px_rgba(15,23,42,0.04)]"
                 }
                 className="text-[18px] font-semibold tracking-[0.01em] text-[#1e293b] md:text-[22px]"

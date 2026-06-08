@@ -29,10 +29,10 @@ export default function PasswordResetSuccessPage() {
               </svg>
             </div>
           </div>
-          <h1 className="mt-8 text-[28px] font-semibold tracking-[-0.02em] text-white">
+          <h1 className="mt-8 text-[32px] font-medium tracking-[-0.03em] text-[#111827]">
             Password updated!
           </h1>
-          <div className="mt-4 text-[17px] leading-[1.65] text-white/72">
+          <div className="mt-4 text-[16px] leading-[1.75] text-[#5f6b76]">
             <div>Your password was updated successfully.</div>
             <div>Please click continue to log in.</div>
           </div>

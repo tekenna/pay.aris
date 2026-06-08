@@ -113,8 +113,8 @@ function buildSourcePerformance(overview: MerchantDashboardOverview | null) {
     pendingSessions: item.pendingSessions,
     failedSessions: item.failedSessions,
     icon: item.source === "api_checkout" ? "API" : "PL",
-    color: index % 2 === 0 ? "#0a9251" : "#045c38",
-    accent: index % 2 === 0 ? "#e4f5ea" : "#eef9f1",
+    color: index % 2 === 0 ? "#2596be" : "#007074",
+    accent: index % 2 === 0 ? "#e7f5fa" : "#dff1f4",
   }));
 }
 
@@ -276,7 +276,7 @@ function GroupedBankChart({
                     <div
                       role="button"
                       tabIndex={0}
-                      className="w-5 rounded-t-[6px] bg-[var(--brand)] shadow-[0_12px_24px_rgba(10,146,81,0.18)]"
+                      className="w-5 rounded-t-[6px] bg-[var(--brand)] shadow-[0_12px_24px_rgba(37,150,190,0.18)]"
                       style={{
                         height: `${Math.max(24, (bank.success / max) * 250)}px`,
                       }}

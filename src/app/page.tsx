@@ -65,26 +65,27 @@ export default function HomePage() {
             fill
             priority
             loading="eager"
+            sizes="100vw"
             className="object-cover object-center opacity-95"
           />
         </div>
 
-        <div className="relative mx-auto flex min-h-[680px] max-w-[1240px] flex-col px-5 pb-0 pt-3 md:px-8 lg:min-h-[720px] lg:px-10">
-          <header className="flex items-center justify-between gap-4 py-3">
+        <div className="relative mx-auto flex min-h-[620px] max-w-[1240px] flex-col px-4 pb-8 pt-3 sm:px-5 md:px-8 lg:min-h-[720px] lg:px-10 lg:pb-0">
+          <header className="flex flex-col gap-4 py-3 sm:flex-row sm:items-center sm:justify-between">
             <Link href="/" aria-label="Aris Wallex home">
-              <Wordmark />
+              <Wordmark compact />
             </Link>
 
-            <div className="flex items-center gap-3">
+            <div className="flex w-full items-center gap-3 sm:w-auto sm:flex-none">
               <Link href="/login">
-                <Button className="h-[42px] min-w-[106px] rounded-[9px] bg-[#0a8e4e] px-6 text-[13px] font-semibold shadow-none hover:bg-[#087844]">
+                <Button className="h-[42px] w-full min-w-0 rounded-[9px] bg-[#005761] px-4 text-[13px] font-semibold shadow-none hover:bg-[#087844] sm:min-w-[106px] sm:px-6">
                   Login
                 </Button>
               </Link>
               <Link href="/verify-email">
                 <Button
                   variant="secondary"
-                  className="h-[42px] min-w-[112px] rounded-[9px] border border-[#d7dde3] bg-white px-6 text-[13px] font-semibold text-[#202433] shadow-none hover:bg-[#f8fbfd]"
+                  className="h-[42px] w-full min-w-0 rounded-[9px] border border-[#d7dde3] bg-white px-4 text-[13px] font-semibold text-[#202433] shadow-none hover:bg-[#f8fbfd] sm:min-w-[112px] sm:px-6"
                 >
                   Get Started
                 </Button>
@@ -92,22 +93,22 @@ export default function HomePage() {
             </div>
           </header>
 
-          <div className="lg:pt-8 w-full flex-1  flex items-center">
-            <div className="relative z-10  max-w-[590px] h-full pb-6 lg:pb-20">
+          <div className="flex w-full flex-1 items-center lg:pt-8">
+            <div className="relative z-10 h-full max-w-[590px] pb-6 pt-6 text-center sm:pt-8 sm:text-left lg:pb-20">
               <SectionBadge>100% Trusted Platform</SectionBadge>
 
-              <h1 className="mt-5 text-[44px] font-black leading-[0.95] tracking-[-0.045em] text-black sm:text-[56px] ">
+              <h1 className="mt-5 text-[34px] font-black leading-[0.96] tracking-[-0.05em] text-black sm:text-[44px] md:text-[52px] lg:text-[56px]">
                 Seamless digital payment solutions across{" "}
-                <span className="text-[#0a8e4e]">Africa</span>
+                <span className="text-[#005761]">Africa</span>
               </h1>
 
-              <p className="mt-4 max-w-[390px] text-[15px] leading-7 text-[#5f6b76] sm:text-[16px]">
+              <p className="mt-4 max-w-[390px] text-[15px] leading-7 text-[#5f6b76] sm:text-[16px] sm:leading-8">
                 Building a business is hard. Getting paid shouldn&apos;t be.
               </p>
 
               <div className="mt-7">
                 <Link href="/verify-email">
-                  <Button className="h-[48px] rounded-[10px] bg-[#0a8e4e] px-8 text-[14px] font-semibold shadow-none hover:bg-[#087844]">
+                  <Button className="h-[48px] w-full rounded-[10px] bg-[#005761] px-8 text-[14px] font-semibold shadow-none hover:bg-[#005761] sm:w-auto">
                     Get Started
                   </Button>
                 </Link>
@@ -117,29 +118,29 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-[1240px] px-5 pb-16 pt-16 md:px-8 md:pb-20 md:pt-18 lg:px-10 lg:pb-24 lg:pt-20">
+      <section className="mx-auto max-w-[1240px] px-4 pb-16 pt-14 sm:px-5 md:px-8 md:pb-20 md:pt-18 lg:px-10 lg:pb-24 lg:pt-20">
         <div className="mx-auto max-w-[630px] text-center">
           <SectionBadge>Services</SectionBadge>
-          <h2 className="mx-auto mt-5 max-w-[560px] text-[32px] font-black leading-[1.02] tracking-[-0.04em] text-black sm:text-[40px] md:text-[48px] lg:text-[52px]">
+          <h2 className="mx-auto mt-5 max-w-[560px] text-[28px] font-black leading-[1.04] tracking-[-0.04em] text-black sm:text-[36px] md:text-[48px] lg:text-[52px]">
             Can Help You Achieve Financial Succes
           </h2>
         </div>
 
-        <div className="mt-14 grid gap-14 lg:mt-16 lg:gap-18">
+        <div className="mt-12 grid gap-14 lg:mt-16 lg:gap-18">
           <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(340px,460px)] lg:gap-14">
-            <div className="max-w-[460px] lg:pl-16 xl:pl-20">
-              <h3 className="max-w-[360px] text-[28px] font-black leading-[1.15] tracking-[-0.03em] text-black md:text-[34px]">
+            <div className="max-w-[460px] text-center lg:pl-16 lg:text-left xl:pl-20">
+              <h3 className="max-w-[360px] text-[26px] font-black leading-[1.15] tracking-[-0.03em] text-black md:text-[34px]">
                 Create custom payment experiences with simple APIs
               </h3>
 
-              <p className="mt-7 max-w-[420px] text-[15px] leading-8 text-[#667085]">
+              <p className="mt-6 max-w-[420px] text-[15px] leading-8 text-[#667085]">
                 Developers love our thorough, well-documented APIs that let you
                 build everything from simple weekend projects, to complex
                 financial products serving hundreds of thousands of customers.
                 If you can imagine it, you can build it with ArisPay.
               </p>
 
-              <ul className="mt-8 grid gap-5">
+              <ul className="mt-8 grid gap-5 text-left">
                 {platformFeatures.map((item) => (
                   <BulletItem key={item}>{item}</BulletItem>
                 ))}
@@ -158,7 +159,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="rounded-[26px] bg-[#e9f9f4] px-6 py-10 sm:px-8 md:px-10 md:py-12 lg:px-14 lg:py-14">
+          <div className="rounded-[26px] bg-[#e9f9f4] px-5 py-10 sm:px-8 md:px-10 md:py-12 lg:px-14 lg:py-14">
             <div className="grid items-center gap-10 lg:grid-cols-[minmax(320px,420px)_minmax(0,1fr)] lg:gap-16">
               <div className="order-2 flex justify-center lg:order-1 lg:justify-start">
                 <div className="relative h-[285px] w-full max-w-[370px] sm:h-[340px] md:h-[380px]">
@@ -171,8 +172,8 @@ export default function HomePage() {
                 </div>
               </div>
 
-              <div className="order-1 max-w-[430px] lg:order-2">
-                <h3 className="max-w-[420px] text-[28px] font-black leading-[1.15] tracking-[-0.03em] text-black md:text-[34px]">
+              <div className="order-1 max-w-[430px] text-center lg:order-2 lg:text-left">
+                <h3 className="max-w-[420px] text-[26px] font-black leading-[1.15] tracking-[-0.03em] text-black md:text-[34px]">
                   Create a seamless and pleasant checkout experience for your
                   users
                 </h3>
@@ -183,7 +184,7 @@ export default function HomePage() {
                   options.
                 </p>
 
-                <ul className="mt-8 grid gap-5">
+                <ul className="mt-8 grid gap-5 text-left">
                   {checkoutFeatures.map((item) => (
                     <BulletItem key={item}>{item}</BulletItem>
                   ))}
@@ -194,18 +195,20 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="relative overflow-hidden px-5 pb-24 pt-2 md:px-8 lg:px-10 lg:pb-28">
+      <section className="relative overflow-hidden px-4 pb-20 pt-2 sm:px-5 md:px-8 lg:px-10 lg:pb-28">
         <div className="absolute inset-x-0 bottom-0 top-12 opacity-75">
           <Image
             src="/images/hero-bg.svg"
             alt=""
             fill
+            loading="lazy"
+            sizes="100vw"
             className="object-cover object-bottom"
           />
         </div>
 
         <div className="relative mx-auto max-w-[1240px]">
-          <div className="relative overflow-hidden rounded-[24px] bg-[#075d52] px-6 py-14 text-center sm:px-8 md:px-10 md:py-16 lg:px-12 lg:py-20">
+          <div className="relative overflow-hidden rounded-[24px] bg-[#075d52] px-5 py-12 text-center sm:px-8 md:px-10 md:py-16 lg:px-12 lg:py-20">
             <div className="absolute inset-0 opacity-22">
               <Image
                 src="/images/get-started-card-bg.svg"
@@ -216,7 +219,7 @@ export default function HomePage() {
             </div>
 
             <div className="relative mx-auto max-w-[560px]">
-              <h2 className="text-[36px] font-black leading-[1.03] tracking-[-0.04em] text-white sm:text-[46px] md:text-[54px] lg:text-[62px]">
+              <h2 className="text-[28px] font-black leading-[1.08] tracking-[-0.04em] text-white sm:text-[40px] md:text-[54px] lg:text-[62px]">
                 Start accepting payments in just 10 minutes.
               </h2>
 
@@ -224,7 +227,7 @@ export default function HomePage() {
                 <Link href="/verify-email">
                   <Button
                     variant="secondary"
-                    className="h-[50px] rounded-[10px] bg-[#ecfaf3] px-8 text-[13px] font-semibold text-[#045c38] shadow-none hover:bg-white"
+                    className="h-[50px] w-full rounded-[10px] bg-[#ecfaf3] px-8 text-[13px] font-semibold text-[#045c38] shadow-none hover:bg-white sm:w-auto"
                   >
                     Get Started
                   </Button>
@@ -236,10 +239,10 @@ export default function HomePage() {
       </section>
 
       <footer className="bg-white">
-        <div className="mx-auto flex min-h-[220px] max-w-[1240px] flex-col justify-between gap-10 px-5 pb-10 pt-16 md:px-8 lg:min-h-[260px] lg:px-10 lg:pb-12 lg:pt-18">
+        <div className="mx-auto flex min-h-[220px] max-w-[1240px] flex-col justify-between gap-8 px-4 pb-10 pt-14 sm:px-5 md:px-8 lg:min-h-[260px] lg:px-10 lg:pb-12 lg:pt-18">
           <div>
             <Link href="/" aria-label="Aris Wallex home">
-              <Wordmark />
+              <Wordmark compact />
             </Link>
           </div>
 

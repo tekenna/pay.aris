@@ -1,5 +1,4 @@
 import Image from "next/image";
-import { cn } from "@/lib/utils";
 
 export function Wordmark({
   inverted = false,
@@ -11,22 +10,19 @@ export function Wordmark({
   return (
     <div className="flex items-center gap-3">
       <Image
-        src="/images/white-logo.svg"
-        alt="Aris Wallex"
-        width={251}
-        height={53}
+        src="/images/logo.svg"
+        alt="Aris Pay"
+        width={990}
+        height={204}
         loading="eager"
-        className={cn(
-          compact ? "h-9 w-9 object-contain object-left" : "h-[34px] w-[162px] object-contain object-left",
-          !inverted && "logo-on-light",
-        )}
+        className={compact ? "h-6 w-[116px] object-contain object-left" : "h-[34px] w-[162px] object-contain object-left"}
       />
       {!compact ? (
         <div className="sr-only">
-          <p className={cn("text-sm font-semibold", inverted ? "text-white" : "text-slate-900")}>
-            Aris Wallex
+          <p className={inverted ? "text-sm font-semibold text-white" : "text-sm font-semibold text-slate-900"}>
+            Aris Pay
           </p>
-          <p className={cn("text-xs", inverted ? "text-white/65" : "text-slate-500")}>
+          <p className={inverted ? "text-xs text-white/65" : "text-xs text-slate-500"}>
             Pay Business Suite
           </p>
         </div>

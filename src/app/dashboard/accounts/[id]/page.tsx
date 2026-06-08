@@ -54,6 +54,8 @@ export default function AccountDetailsPage() {
     if (account.kind === "primary") return "Primary Settlement Account";
     return "Settlement Account";
   }, [account]);
+  const currentRole = (session?.business.currentRole || "owner").toLowerCase();
+  const canWithdraw = currentRole === "owner" || currentRole === "admin";
 
   return (
     <MerchantShell title="Account Details">
@@ -90,12 +92,14 @@ export default function AccountDetailsPage() {
             <p className="text-[18px] font-bold text-slate-950">Account Transactions</p>
             <p className="mt-1 text-sm text-slate-500">All credits and debits that have happened on this account.</p>
           </div>
-          <Link
-            href="/dashboard/accounts/withdraw"
-            className="dashboard-black-button inline-flex h-10 items-center justify-center rounded-[10px] px-5 text-sm font-semibold text-white"
-          >
-            Withdraw
-          </Link>
+          {canWithdraw ? (
+            <Link
+              href="/dashboard/accounts/withdraw"
+              className="dashboard-black-button inline-flex h-10 items-center justify-center rounded-[10px] px-5 text-sm font-semibold text-white"
+            >
+              Withdraw
+            </Link>
+          ) : null}
         </div>
 
         <div className="overflow-x-auto">
@@ -117,7 +121,7 @@ export default function AccountDetailsPage() {
                     <div className="inline-flex items-center gap-3">
                       <span
                         className={`inline-flex h-10 w-10 items-center justify-center rounded-full ${
-                          entry.type === "credit" ? "bg-[#e8f6ef] text-[#12b76a]" : "bg-[#fff1f3] text-[#f04438]"
+                          entry.type === "credit" ? "bg-[var(--brand-soft)] text-[var(--brand-deep)]" : "bg-[#fff1f3] text-[#f04438]"
                         }`}
                       >
                         {entry.type === "credit" ? (
@@ -128,7 +132,7 @@ export default function AccountDetailsPage() {
                       </span>
                       <span
                         className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
-                          entry.type === "credit" ? "bg-[#e8f6ef] text-[#0a9550]" : "bg-[#fff4e5] text-[#b54708]"
+                          entry.type === "credit" ? "bg-[var(--brand-soft)] text-[var(--brand-deep)]" : "bg-[#fff4e5] text-[#b54708]"
                         }`}
                       >
                         {entry.type === "credit" ? "Credit" : "Debit"}

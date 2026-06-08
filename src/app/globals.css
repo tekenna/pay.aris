@@ -7,16 +7,16 @@
   --border: #e3e8ef;
   --surface: #ffffff;
   --surface-muted: #eef2f6;
-  --brand: #005330;
-  --brand-deep: #00311d;
-  --brand-soft: #e9f4ee;
-  --brand-soft-2: #d8ebdf;
+  --brand: #005761;
+  --brand-deep: #007074;
+  --brand-soft: #e7f5fa;
+  --brand-soft-2: #cdebf1;
   --brand-ink: #0f1728;
-  --brand-panel: #005330;
-  --brand-panel-deep: #000000;
-  --brand-panel-active: linear-gradient(90deg, #005330 0%, #000000 100%);
+  --brand-panel: #007074;
+  --brand-panel-deep: #02555a;
+  --brand-panel-active: linear-gradient(90deg, #005761 0%, #007074 100%);
   --brand-panel-soft: rgba(255, 255, 255, 0.08);
-  --accent: #14d86b;
+  --accent: #005761;
   --danger: #ef4444;
   --warning: #f6b31a;
   --shadow-card: 0 18px 40px rgba(15, 23, 42, 0.06);
@@ -101,22 +101,22 @@ textarea {
       rgba(255, 255, 255, 0.06) 0%,
       rgba(255, 255, 255, 0.03) 100%
     ),
-    linear-gradient(180deg, #005330 0%, #00311d 100%);
+    linear-gradient(180deg, #2596be 0%, #007074 100%);
 }
 
 .app-shell-gradient {
   background:
     radial-gradient(
       circle at top left,
-      rgba(0, 83, 48, 0.16),
+      rgba(37, 150, 190, 0.18),
       transparent 28%
     ),
     radial-gradient(
       circle at bottom right,
-      rgba(0, 0, 0, 0.18),
+      rgba(0, 112, 116, 0.2),
       transparent 22%
     ),
-    linear-gradient(180deg, #005330 0%, #00150c 100%);
+    linear-gradient(180deg, #007074 0%, #033d42 100%);
 }
 
 .wallet-balance-gradient {
@@ -126,27 +126,31 @@ textarea {
       rgba(255, 255, 255, 0.14) 0,
       transparent 18%
     ),
-    linear-gradient(118deg, #005330 0%, #003d24 42%, #000000 100%);
+    linear-gradient(118deg, #2596be 0%, #007074 52%, #02555a 100%);
 }
 
 .wallet-stat-gradient {
   background:
-    linear-gradient(118deg, rgba(0, 83, 48, 0.28), rgba(255, 255, 255, 0.09)),
+    linear-gradient(
+      118deg,
+      rgba(37, 150, 190, 0.28),
+      rgba(255, 255, 255, 0.09)
+    ),
     rgba(255, 255, 255, 0.08);
 }
 
 .dashboard-black-button {
-  background: linear-gradient(90deg, #005330 0%, #000000 100%);
+  background: linear-gradient(90deg, #2596be 0%, #007074 100%);
   color: #ffffff;
 }
 
 .dashboard-black-button:hover {
-  background: linear-gradient(90deg, #00643a 0%, #0b0b0b 100%);
+  background: linear-gradient(90deg, #31a5ce 0%, #0a8085 100%);
 }
 
 .dashboard-soft-green-button {
-  background: linear-gradient(180deg, #f7fcf9 0%, #e3efe7 100%);
-  color: #005330;
+  background: linear-gradient(180deg, #f5fbfd 0%, #e2f3f7 100%);
+  color: #007074;
 }
 
 .dashboard-soft-green-button:hover {
@@ -188,32 +192,6 @@ textarea {
   left: 50%;
   top: 0;
   width: 1px;
-}
-
-.auth-logo-mask {
-  background: linear-gradient(
-    90deg,
-    #14d86b 0 20%,
-    #0d1117 20% 96%,
-    #14d86b 96% 100%
-  );
-  mask-image: url("/images/white-logo.svg");
-  mask-position: center;
-  mask-repeat: no-repeat;
-  mask-size: contain;
-  -webkit-mask-image: url("/images/white-logo.svg");
-  -webkit-mask-position: center;
-  -webkit-mask-repeat: no-repeat;
-  -webkit-mask-size: contain;
-}
-
-.auth-logo-on-dark {
-  background: #ffffff;
-}
-
-.logo-on-light {
-  filter: brightness(0) saturate(100%) invert(20%) sepia(82%) saturate(1560%)
-    hue-rotate(136deg) brightness(89%) contrast(101%);
 }
 
 .auth-hidden-scrollbar {

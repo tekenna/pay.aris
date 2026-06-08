@@ -9,8 +9,11 @@ import type { ApiResponse, BusinessSession } from "@/lib/types";
 import {
   clearStoredSession,
   getStoredSession,
+  isSessionExpired,
   redirectToLogin,
   setStoredSession,
+  shouldRefreshSession,
+  touchStoredSessionActivity,
 } from "@/services/session-storage";
 
 const API_BASE_URL =
@@ -34,7 +37,7 @@ function createConnectionErrorResponse<T>(): ApiResponse<T> {
 
 let refreshPromise: Promise<string | null> | null = null;
 
-async function refreshBusinessAccessToken() {
+export async function refreshBusinessAccessToken() {
   if (typeof window === "undefined") {
     return null;
   }
@@ -91,6 +94,41 @@ export const apiClient = axios.create({
     "Content-Type": "application/json",
   },
 });
+
+apiClient.interceptors.request.use(
+  async (config) => {
+    if (typeof window === "undefined" || config.url === "/business-auth/refresh") {
+      return config;
+    }
+
+    if (!config.headers?.Authorization) {
+      return config;
+    }
+
+    const currentSession = getStoredSession();
+    if (!currentSession || isSessionExpired(currentSession)) {
+      clearStoredSession();
+      redirectToLogin();
+      return Promise.reject(new Error("Session expired. Please sign in again."));
+    }
+
+    let activeToken = currentSession.token;
+    if (shouldRefreshSession(currentSession)) {
+      const refreshedToken = await refreshBusinessAccessToken();
+      if (!refreshedToken) {
+        clearStoredSession();
+        redirectToLogin();
+        return Promise.reject(new Error("Session expired. Please sign in again."));
+      }
+      activeToken = refreshedToken;
+    }
+
+    touchStoredSessionActivity();
+    config.headers.Authorization = `Bearer ${activeToken}`;
+    return config;
+  },
+  (error) => Promise.reject(error),
+);
 
 apiClient.interceptors.response.use(
   (response) => response,

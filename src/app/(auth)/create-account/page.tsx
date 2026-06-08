@@ -50,13 +50,27 @@ function Field({
 }) {
   return (
     <label className={className}>
-      <span className="mb-2 block text-[14px] font-semibold tracking-[0.02em] text-white/72">
+      <span className="mb-2 block text-[14px] font-semibold tracking-[0.02em] text-[#111827]">
         {label}
       </span>
       {children}
     </label>
   );
 }
+
+type CreateAccountFormState = {
+  contactFirstName: string;
+  contactLastName: string;
+  emailAddress: string;
+  phoneNumber: string;
+  businessName: string;
+  taxIdentificationNumber: string;
+  addressCountry: string;
+  addressState: string;
+  addressCity: string;
+  password: string;
+  confirmPassword: string;
+};
 
 export default function CreateAccountPage() {
   const router = useRouter();
@@ -78,7 +92,7 @@ export default function CreateAccountPage() {
       .find((state) => state.name === initialState)
       ?.cities.map((city) => city.name) || [];
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<CreateAccountFormState>({
     contactFirstName: registrationDraft.contactFirstName || "",
     contactLastName: registrationDraft.contactLastName || "",
     emailAddress: registrationDraft.emailAddress || "",
@@ -124,6 +138,81 @@ export default function CreateAccountPage() {
     }
   }, [cityOptions, form.addressCity]);
 
+  function updateForm<K extends keyof CreateAccountFormState>(
+    key: K,
+    value: CreateAccountFormState[K],
+  ) {
+    setForm((current) => ({ ...current, [key]: value }));
+  }
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!isFormValid) {
+      toast.error("Complete all required fields before continuing.");
+      return;
+    }
+
+    if (form.password !== form.confirmPassword) {
+      toast.error("Password confirmation does not match.");
+      return;
+    }
+
+    const normalizedPhoneNumber = formatNigeriaPhoneNumber(form.phoneNumber);
+
+    const nextDraft = {
+      ...registrationDraft,
+      businessName: form.businessName,
+      contactFirstName: form.contactFirstName,
+      contactLastName: form.contactLastName,
+      phoneNumber: normalizedPhoneNumber,
+      emailAddress: form.emailAddress,
+      taxIdentificationNumber: form.taxIdentificationNumber,
+      addressCountry: form.addressCountry,
+      addressState: form.addressState,
+      addressCity: form.addressCity,
+    };
+
+    setRegistrationDraft(nextDraft);
+    setSubmitting(true);
+
+    try {
+      const response = await authService.registerBusiness({
+        token: registrationDraft.token,
+        businessName: form.businessName,
+        contactFirstName: form.contactFirstName,
+        contactLastName: form.contactLastName,
+        phoneNumber: normalizedPhoneNumber,
+        emailAddress: form.emailAddress,
+        password: form.password,
+        taxIdentificationNumber: form.taxIdentificationNumber,
+        address: {
+          city: form.addressCity,
+          state: form.addressState,
+          country: form.addressCountry,
+        },
+      });
+
+      if (response.statusCode !== 200 || !response.data?.token) {
+        toast.error(response.message || "Unable to create account.");
+        return;
+      }
+
+      setSession({
+        business: response.data.business,
+        token: response.data.token,
+      });
+      clearRegistrationDraft();
+      toast.success("Account created successfully.");
+      router.push("/onboarding-success");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Unable to create account.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   return (
     <AuthGuard>
       <AuthSplitShell
@@ -132,92 +221,14 @@ export default function CreateAccountPage() {
         illustration="access"
         contentClassName="max-w-[650px]"
       >
-        <form
-          className="grid gap-8 "
-          onSubmit={async (event) => {
-            event.preventDefault();
-            if (!isFormValid) {
-              toast.error("Complete all required fields before continuing.");
-              return;
-            }
-
-            if (form.password !== form.confirmPassword) {
-              toast.error("Password confirmation does not match.");
-              return;
-            }
-
-            const normalizedPhoneNumber = formatNigeriaPhoneNumber(
-              form.phoneNumber,
-            );
-
-            const nextDraft = {
-              ...registrationDraft,
-              businessName: form.businessName,
-              contactFirstName: form.contactFirstName,
-              contactLastName: form.contactLastName,
-              phoneNumber: normalizedPhoneNumber,
-              emailAddress: form.emailAddress,
-              taxIdentificationNumber: form.taxIdentificationNumber,
-              addressCountry: form.addressCountry,
-              addressState: form.addressState,
-              addressCity: form.addressCity,
-            };
-
-            setRegistrationDraft(nextDraft);
-            setSubmitting(true);
-
-            try {
-              const response = await authService.registerBusiness({
-                token: registrationDraft.token,
-                businessName: form.businessName,
-                contactFirstName: form.contactFirstName,
-                contactLastName: form.contactLastName,
-                phoneNumber: normalizedPhoneNumber,
-                emailAddress: form.emailAddress,
-                password: form.password,
-                taxIdentificationNumber: form.taxIdentificationNumber,
-                address: {
-                  city: form.addressCity,
-                  state: form.addressState,
-                  country: form.addressCountry,
-                },
-              });
-
-              if (response.statusCode !== 200 || !response.data?.token) {
-                toast.error(response.message || "Unable to create account.");
-                return;
-              }
-
-              setSession({
-                business: response.data.business,
-                token: response.data.token,
-              });
-              clearRegistrationDraft();
-              toast.success("Account created successfully.");
-              router.push("/onboarding-success");
-            } catch (error) {
-              toast.error(
-                error instanceof Error
-                  ? error.message
-                  : "Unable to create account.",
-              );
-            } finally {
-              setSubmitting(false);
-            }
-          }}
-        >
+        <form className="grid gap-6 text-left" onSubmit={handleSubmit}>
           <div className="grid gap-6 sm:grid-cols-2">
             <Field label="First Name">
               <AuthTextInput
                 name="firstName"
                 placeholder="e.g John"
                 value={form.contactFirstName}
-                onChange={(value) =>
-                  setForm((current) => ({
-                    ...current,
-                    contactFirstName: value,
-                  }))
-                }
+                onChange={(value) => updateForm("contactFirstName", value)}
                 required
               />
             </Field>
@@ -226,9 +237,7 @@ export default function CreateAccountPage() {
                 name="lastName"
                 placeholder="e.g Doe"
                 value={form.contactLastName}
-                onChange={(value) =>
-                  setForm((current) => ({ ...current, contactLastName: value }))
-                }
+                onChange={(value) => updateForm("contactLastName", value)}
                 required
               />
             </Field>
@@ -241,9 +250,7 @@ export default function CreateAccountPage() {
                 type="email"
                 placeholder="e.g joe@example.com"
                 value={form.emailAddress}
-                onChange={(value) =>
-                  setForm((current) => ({ ...current, emailAddress: value }))
-                }
+                onChange={(value) => updateForm("emailAddress", value)}
                 disabled
               />
             </Field>
@@ -253,22 +260,18 @@ export default function CreateAccountPage() {
                 type="tel"
                 placeholder="e.g 08012345678"
                 value={form.phoneNumber}
-                onChange={(value) =>
-                  setForm((current) => ({ ...current, phoneNumber: value }))
-                }
+                onChange={(value) => updateForm("phoneNumber", value)}
                 required
               />
             </Field>
           </div>
-          <div className="grid gap-6 ">
+          <div className="grid gap-6">
             <Field label="Business Name">
               <AuthTextInput
                 name="businessName"
                 placeholder="e.g ACME INC"
                 value={form.businessName}
-                onChange={(value) =>
-                  setForm((current) => ({ ...current, businessName: value }))
-                }
+                onChange={(value) => updateForm("businessName", value)}
                 required
               />
             </Field>
@@ -297,10 +300,7 @@ export default function CreateAccountPage() {
                 placeholder="e.g 12345678-0001"
                 value={form.taxIdentificationNumber}
                 onChange={(value) =>
-                  setForm((current) => ({
-                    ...current,
-                    taxIdentificationNumber: value,
-                  }))
+                  updateForm("taxIdentificationNumber", value)
                 }
               />
             </Field>
@@ -311,9 +311,7 @@ export default function CreateAccountPage() {
               <AuthSelectInput
                 name="state"
                 value={form.addressState}
-                onChange={(value) =>
-                  setForm((current) => ({ ...current, addressState: value }))
-                }
+                onChange={(value) => updateForm("addressState", value)}
                 options={states.map((state) => state.name)}
                 required
               />
@@ -322,9 +320,7 @@ export default function CreateAccountPage() {
               <AuthSelectInput
                 name="city"
                 value={form.addressCity}
-                onChange={(value) =>
-                  setForm((current) => ({ ...current, addressCity: value }))
-                }
+                onChange={(value) => updateForm("addressCity", value)}
                 options={cityOptions}
                 required
               />
@@ -338,9 +334,7 @@ export default function CreateAccountPage() {
                 type="password"
                 placeholder="********"
                 value={form.password}
-                onChange={(value) =>
-                  setForm((current) => ({ ...current, password: value }))
-                }
+                onChange={(value) => updateForm("password", value)}
                 required
               />
             </Field>
@@ -350,19 +344,17 @@ export default function CreateAccountPage() {
                 type="password"
                 placeholder="********"
                 value={form.confirmPassword}
-                onChange={(value) =>
-                  setForm((current) => ({ ...current, confirmPassword: value }))
-                }
+                onChange={(value) => updateForm("confirmPassword", value)}
                 required
               />
             </Field>
           </div>
 
-          <div className="flex items-center justify-between gap-4 pt-2">
+          <div className="flex flex-col-reverse gap-4 pt-2 sm:flex-row sm:items-center sm:justify-between">
             <AuthBackButton href="/verify-email" />
             <AuthPrimaryButton
               type="submit"
-              className="w-[178px]"
+              className="w-full sm:w-[178px]"
               disabled={!isFormValid}
               loading={submitting}
             >
@@ -370,11 +362,11 @@ export default function CreateAccountPage() {
             </AuthPrimaryButton>
           </div>
 
-          <p className="pt-6 text-center text-[16px] text-white/72">
+          <p className="pt-2 text-center text-[15px] text-[#5f6b76]">
             Already have an account?{" "}
             <Link
               href="/login"
-              className="font-semibold text-white underline underline-offset-2"
+              className="font-semibold text-[#0e5961] transition hover:text-[#0b4d54]"
             >
               Login
             </Link>

@@ -133,6 +133,8 @@ export type ApiKeyEnvironment = {
 export type BusinessSession = {
   token: string;
   refreshToken?: string;
+  accessTokenExpiresAt?: string;
+  lastActivityAt?: string;
   business: Business;
 };
 

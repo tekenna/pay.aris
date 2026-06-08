@@ -22,7 +22,7 @@ interface FilterProps {
 }
 
 const triggerClasses =
-  "inline-flex h-10 items-center gap-2 rounded-xl border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--foreground)] shadow-sm transition hover:border-[color:rgba(0,83,48,0.24)] hover:bg-[var(--surface-subtle)]";
+  "inline-flex h-10 items-center gap-2 rounded-xl border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--foreground)] shadow-sm transition hover:border-[color:rgba(37,150,190,0.24)] hover:bg-[var(--surface-subtle)]";
 
 const pad = (value: number) => String(value).padStart(2, "0");
 
@@ -114,7 +114,7 @@ export function Filter({ filterItems, onChange }: FilterProps) {
         <FilterIcon className="h-4 w-4 text-[var(--brand)]" />
         <span>Filter</span>
         {activeFilterCount > 0 ? (
-          <span className="inline-flex min-w-6 items-center justify-center rounded-full bg-[color:rgba(0,83,48,0.1)] px-2 py-0.5 text-xs font-semibold text-[var(--brand)]">
+          <span className="inline-flex min-w-6 items-center justify-center rounded-full bg-[color:rgba(37,150,190,0.1)] px-2 py-0.5 text-xs font-semibold text-[var(--brand)]">
             {activeFilterCount}
           </span>
         ) : null}
@@ -167,7 +167,7 @@ export function Filter({ filterItems, onChange }: FilterProps) {
                               key={value}
                               type="button"
                               onClick={() => updateCheckbox(index, value)}
-                              className="flex w-full items-center gap-3 rounded-xl border border-transparent bg-[var(--surface-subtle)] px-3 py-2 text-left transition hover:border-[color:rgba(0,83,48,0.18)] hover:bg-white"
+                              className="flex w-full items-center gap-3 rounded-xl border border-transparent bg-[var(--surface-subtle)] px-3 py-2 text-left transition hover:border-[color:rgba(37,150,190,0.18)] hover:bg-white"
                             >
                               <span
                                 className={`inline-flex h-5 w-5 items-center justify-center rounded-md border ${

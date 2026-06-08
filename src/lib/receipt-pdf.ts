@@ -14,20 +14,19 @@ export type ReceiptPdfData = {
   narration?: string | null;
 };
 
-const ARIS_LOGO_URL =
-  "https://res.cloudinary.com/doopxwl8l/image/upload/q_auto/f_auto/v1777482297/logo_fy7vut.png";
+const ARIS_LOGO_URL = "/images/logo.svg";
 
 const COLORS = {
-  brand: "#0a9251",
-  brandDeep: "#045c38",
-  brandSoft: "#eaf8ef",
+  brand: "#2596be",
+  brandDeep: "#007074",
+  brandSoft: "#e7f5fa",
   text: "#273142",
   muted: "#6c7f9d",
   divider: "#dfe8f1",
-  statusBg: "#eaf8ef",
-  statusText: "#0a9251",
+  statusBg: "#e7f5fa",
+  statusText: "#007074",
   pageBg: "#ffffff",
-  footer: "#0a3d2a",
+  footer: "#007074",
 };
 
 function formatReceiptAmount(amount: number) {
@@ -181,7 +180,7 @@ export async function downloadReceiptPdf(
   });
 
   cursorY += 48;
-  drawDottedRule(pdf, contentX, cursorY, contentWidth, "#cfe4d7");
+  drawDottedRule(pdf, contentX, cursorY, contentWidth, "#cdebf1");
 
   cursorY += 30;
   pdf.setFont("helvetica", "bold");

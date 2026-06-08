@@ -347,7 +347,7 @@ function ProfilePanel({
   return (
     <Card className="dashboard-surface-card overflow-hidden p-8">
       <div className="flex flex-wrap items-start gap-6">
-        <div className="relative h-[118px] w-[118px] rounded-full bg-[radial-gradient(circle_at_50%_24%,#f7d7bd_0_17%,#111827_18%_28%,#d7f3e7_29%_57%,#e8f6ef_58%_100%)] shadow-sm" />
+        <div className="relative h-[118px] w-[118px] rounded-full bg-[radial-gradient(circle_at_50%_24%,#f7d7bd_0_17%,#111827_18%_28%,#d8f0f5_29%_57%,#e7f5fa_58%_100%)] shadow-sm" />
         <button
           type="button"
           onClick={onUpload}
@@ -1313,7 +1313,7 @@ function SecurityPanel({
                     className={cn(
                       "inline-flex rounded-[6px] px-3 py-1 text-xs font-semibold",
                       hasPaymentPin
-                        ? "bg-[#e8f6ef] text-[#0a9550]"
+                        ? "bg-[var(--brand-soft)] text-[var(--brand-deep)]"
                         : "bg-[#fff4e5] text-[#c26a00]",
                     )}
                   >
@@ -1548,7 +1548,7 @@ function TeamPanel({
                   <tr key={member._id} className="bg-white">
                     <td className="px-6 py-5">
                       <div className="flex items-center gap-3">
-                        <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#e8f6ef] text-[13px] font-semibold text-[#0a9550]">
+                        <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[var(--brand-soft)] text-[13px] font-semibold text-[var(--brand-deep)]">
                           {initials}
                         </span>
                         <span className="font-semibold text-[#344054]">
@@ -1757,7 +1757,7 @@ function UploadImageDrawer({
       <div className="flex flex-1 flex-col items-center px-8 py-12">
         <button
           type="button"
-          className="flex h-[230px] w-[230px] flex-col items-center justify-center rounded-full bg-[#e8f6ef] text-center text-[#0a9550]"
+          className="flex h-[230px] w-[230px] flex-col items-center justify-center rounded-full bg-[var(--brand-soft)] text-center text-[var(--brand-deep)]"
         >
           <span className="mb-5 inline-flex h-11 w-11 items-center justify-center rounded-[12px] border border-[#b7dfc9] bg-white">
             <UserSquareIcon className="h-6 w-6" />

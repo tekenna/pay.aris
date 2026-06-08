@@ -36,7 +36,7 @@ const dashboardFieldStateClass: Record<FieldState, string> = {
   default:
     "border-[var(--border)] bg-white shadow-[inset_0_0_0_1px_rgba(216,226,236,0.95)]",
   focus:
-    "border-[var(--brand-soft-2)] bg-white shadow-[inset_0_0_0_1px_rgba(10,146,81,0.18),0_0_0_1px_rgba(10,146,81,0.14)]",
+    "border-[var(--brand-soft-2)] bg-white shadow-[inset_0_0_0_1px_rgba(37,150,190,0.18),0_0_0_1px_rgba(37,150,190,0.14)]",
   success:
     "border-[var(--border)] bg-white shadow-[inset_0_0_0_1px_rgba(216,226,236,0.95)]",
   error:
@@ -122,9 +122,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
 
         <span
           className={cn(
-          "flex w-full items-center gap-3 rounded-[8px] border px-4 transition",
+            "flex w-full items-center gap-3 rounded-[8px] border px-4 transition",
             isDashboardInput
-              ? "focus-within:border-[var(--brand-soft-2)] focus-within:shadow-[0_0_0_1px_rgba(10,146,81,0.14)]"
+              ? "focus-within:border-[var(--brand-soft-2)] focus-within:shadow-[0_0_0_1px_rgba(37,150,190,0.14)]"
               : "focus-within:border-[#b47aea] focus-within:shadow-[0_0_0_1px_rgba(180,122,234,0.35)]",
           fieldSizeClass[fieldSize],
           (isDashboardInput ? dashboardFieldStateClass : fieldStateClass)[resolvedState],
@@ -140,9 +140,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
           {label && labelPlacement === "inside" ? (
             <span
               className={cn(
-              "block text-[12px] font-medium leading-[1.15] text-[#98a2b3]",
-              labelClassName,
-            )}
+                "block text-[12px] font-medium leading-[1.15] text-[#98a2b3]",
+                labelClassName,
+              )}
             >
               {label}
             </span>
