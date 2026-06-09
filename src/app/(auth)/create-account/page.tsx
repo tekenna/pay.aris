@@ -339,7 +339,7 @@ export default function CreateAccountPage() {
                 placeholder="e.g joe@example.com"
                 value={form.emailAddress}
                 onChange={(value) => updateForm("emailAddress", value)}
-                disabled
+                readOnly
               />
             </Field>
             <Field label="Phone Number">

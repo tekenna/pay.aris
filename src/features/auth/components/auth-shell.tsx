@@ -268,6 +268,7 @@ export function AuthTextInput({
   type = "text",
   className,
   disabled,
+  readOnly,
   name,
   required,
 }: {
@@ -277,6 +278,7 @@ export function AuthTextInput({
   type?: string;
   className?: string;
   disabled?: boolean;
+  readOnly?: boolean;
   name?: string;
   required?: boolean;
 }) {
@@ -288,13 +290,14 @@ export function AuthTextInput({
       onChange={(event) => onChange?.(event.target.value)}
       placeholder={placeholder}
       disabled={disabled}
+      readOnly={readOnly}
       required={required}
       labelPlacement="inside"
       fieldSize="md"
-      fieldClassName="rounded-[14px] border border-[#d9e3e6] bg-white px-4 shadow-none focus-within:border-[#0e6b71] focus-within:shadow-[0_0_0_4px_rgba(14,107,113,0.08)] disabled:bg-[#f3f6f7]"
+      fieldClassName="rounded-[14px] border border-[#d9e3e6] bg-white px-4 shadow-none focus-within:border-[#0e6b71] focus-within:shadow-[0_0_0_4px_rgba(14,107,113,0.08)] disabled:bg-[#f3f6f7] read-only:bg-[#f3f6f7]"
       labelClassName="text-[#8a98a5]"
       className={cn(
-        "text-[14px] font-medium text-[#162033] placeholder:text-[#99a5af]",
+        "text-[14px] font-medium text-[#162033] placeholder:text-[#99a5af] read-only:cursor-default",
         className,
       )}
     />
