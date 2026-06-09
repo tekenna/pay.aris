@@ -148,11 +148,13 @@ function hasDraftChanged(current: RegistrationDraft, next: RegistrationDraft) {
   );
 }
 
-export default function CreateAccountPage() {
+function CreateAccountForm({
+  registrationDraft,
+}: {
+  registrationDraft: RegistrationDraft;
+}) {
   const router = useRouter();
   const {
-    isReady,
-    registrationDraft,
     setRegistrationDraft,
     setSession,
     clearRegistrationDraft,
@@ -182,63 +184,40 @@ export default function CreateAccountPage() {
     form.confirmPassword.length >= 8 &&
     passwordsMatch;
 
-  useEffect(() => {
-    if (isReady && !registrationDraft.token) {
-      router.replace("/verify-email");
-    }
-  }, [isReady, registrationDraft.token, router]);
-
-  useEffect(() => {
-    if (!isReady) {
-      return;
-    }
-
-    const nextFormState = buildFormStateFromDraft(registrationDraft, states);
-    setForm((current) => {
-      if (
-        current.contactFirstName === nextFormState.contactFirstName &&
-        current.contactLastName === nextFormState.contactLastName &&
-        current.emailAddress === nextFormState.emailAddress &&
-        current.phoneNumber === nextFormState.phoneNumber &&
-        current.businessName === nextFormState.businessName &&
-        current.taxIdentificationNumber === nextFormState.taxIdentificationNumber &&
-        current.addressCountry === nextFormState.addressCountry &&
-        current.addressState === nextFormState.addressState &&
-        current.addressCity === nextFormState.addressCity
-      ) {
-        return current;
-      }
-
-      return {
-        ...nextFormState,
-        password: current.password,
-        confirmPassword: current.confirmPassword,
-      };
-    });
-  }, [isReady, registrationDraft, states]);
-
-  useEffect(() => {
-    if (cityOptions.length && !cityOptions.includes(form.addressCity)) {
-      setForm((current) => ({ ...current, addressCity: cityOptions[0] }));
-    }
-  }, [cityOptions, form.addressCity]);
-
-  useEffect(() => {
-    if (!isReady) {
-      return;
-    }
-
-    const nextDraft = buildDraftFromForm(registrationDraft, form);
-    if (hasDraftChanged(registrationDraft, nextDraft)) {
-      setRegistrationDraft(nextDraft);
-    }
-  }, [form, isReady, registrationDraft, setRegistrationDraft]);
-
   function updateForm<K extends keyof CreateAccountFormState>(
     key: K,
     value: CreateAccountFormState[K],
   ) {
-    setForm((current) => ({ ...current, [key]: value }));
+    const nextForm =
+      key === "addressState"
+        ? (() => {
+            const nextState = String(value);
+            const nextCityOptions = getCitiesForState(states, nextState);
+
+            return {
+              ...form,
+              addressState: nextState,
+              addressCity:
+                nextCityOptions.includes(form.addressCity)
+                  ? form.addressCity
+                  : nextCityOptions[0] || "",
+            };
+          })()
+        : {
+            ...form,
+            [key]: value,
+          };
+
+    setForm(nextForm);
+
+    if (key === "password" || key === "confirmPassword") {
+      return;
+    }
+
+    const nextDraft = buildDraftFromForm(registrationDraft, nextForm);
+    if (hasDraftChanged(registrationDraft, nextDraft)) {
+      setRegistrationDraft(nextDraft);
+    }
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -463,4 +442,27 @@ export default function CreateAccountPage() {
       </AuthSplitShell>
     </AuthGuard>
   );
+}
+
+export default function CreateAccountPage() {
+  const router = useRouter();
+  const { isReady, registrationDraft } = useBusinessSession();
+
+  useEffect(() => {
+    if (isReady && !registrationDraft.token) {
+      router.replace("/verify-email");
+    }
+  }, [isReady, registrationDraft.token, router]);
+
+  if (!isReady || !registrationDraft.token) {
+    return (
+      <AuthGuard>
+        <div className="flex min-h-screen items-center justify-center bg-white text-sm text-slate-400">
+          Preparing workspace...
+        </div>
+      </AuthGuard>
+    );
+  }
+
+  return <CreateAccountForm registrationDraft={registrationDraft} />;
 }
