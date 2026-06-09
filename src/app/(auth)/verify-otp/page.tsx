@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
@@ -15,16 +16,16 @@ import { useBusinessSession } from "@/store/business-session-provider";
 
 export default function VerifyOtpPage() {
   const router = useRouter();
-  const { registrationDraft, setRegistrationDraft } = useBusinessSession();
+  const { isReady, registrationDraft, setRegistrationDraft } = useBusinessSession();
   const [otp, setOtp] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const isFormValid = otp.length === 6;
 
   useEffect(() => {
-    if (!registrationDraft.otpId) {
+    if (isReady && !registrationDraft.otpId) {
       router.replace("/verify-email");
     }
-  }, [registrationDraft.otpId, router]);
+  }, [isReady, registrationDraft.otpId, router]);
 
   async function handleVerify() {
     if (!registrationDraft.otpId || !isFormValid) {
@@ -105,9 +106,9 @@ export default function VerifyOtpPage() {
               Resend Code
             </button>{" "}
             or{" "}
-            <a href="/verify-email" className="font-semibold text-[#0e5961]">
+            <Link href="/verify-email" className="font-semibold text-[#0e5961]">
               Change Email Address
-            </a>
+            </Link>
           </div>
 
           <div className="flex flex-col-reverse gap-4 sm:flex-row sm:items-center sm:justify-between">

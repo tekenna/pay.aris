@@ -50,12 +50,12 @@ function Field({
   className?: string;
 }) {
   return (
-    <label className={className}>
+    <div className={className}>
       <span className="mb-2 block text-[14px] font-semibold tracking-[0.02em] text-[#111827]">
         {label}
       </span>
       {children}
-    </label>
+    </div>
   );
 }
 
@@ -168,18 +168,26 @@ function CreateAccountForm({
   const cityOptions = useMemo(() => {
     return getCitiesForState(states, form.addressState);
   }, [form.addressState, states]);
-  const isEmailValid = /\S+@\S+\.\S+/.test(form.emailAddress.trim());
+  const trimmedFirstName = form.contactFirstName.trim();
+  const trimmedLastName = form.contactLastName.trim();
+  const trimmedEmail = form.emailAddress.trim();
+  const trimmedBusinessName = form.businessName.trim();
+  const trimmedState = form.addressState.trim();
+  const trimmedCity = form.addressCity.trim();
+  const normalizedPhoneNumber = formatNigeriaPhoneNumber(form.phoneNumber);
+  const normalizedPhoneDigits = normalizedPhoneNumber.replace(/\D/g, "");
+  const isEmailValid = /\S+@\S+\.\S+/.test(trimmedEmail);
   const isPhoneNumberValid =
-    formatNigeriaPhoneNumber(form.phoneNumber).replace(/\D/g, "").length >= 13;
+    normalizedPhoneDigits.length >= 13 && normalizedPhoneDigits.length <= 15;
   const passwordsMatch = form.password === form.confirmPassword;
   const isFormValid =
-    form.contactFirstName.trim().length > 0 &&
-    form.contactLastName.trim().length > 0 &&
+    trimmedFirstName.length > 0 &&
+    trimmedLastName.length > 0 &&
     isEmailValid &&
     isPhoneNumberValid &&
-    form.businessName.trim().length > 0 &&
-    form.addressState.trim().length > 0 &&
-    form.addressCity.trim().length > 0 &&
+    trimmedBusinessName.length > 0 &&
+    trimmedState.length > 0 &&
+    trimmedCity.length > 0 &&
     form.password.length >= 8 &&
     form.confirmPassword.length >= 8 &&
     passwordsMatch;
@@ -232,8 +240,6 @@ function CreateAccountForm({
       return;
     }
 
-    const normalizedPhoneNumber = formatNigeriaPhoneNumber(form.phoneNumber);
-
     const nextDraft = {
       ...buildDraftFromForm(registrationDraft, form),
       phoneNumber: normalizedPhoneNumber,
@@ -249,7 +255,7 @@ function CreateAccountForm({
         contactFirstName: form.contactFirstName,
         contactLastName: form.contactLastName,
         phoneNumber: normalizedPhoneNumber,
-        emailAddress: form.emailAddress,
+        emailAddress: trimmedEmail,
         password: form.password,
         taxIdentificationNumber: form.taxIdentificationNumber,
         address: {

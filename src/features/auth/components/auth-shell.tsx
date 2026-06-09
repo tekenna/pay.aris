@@ -128,7 +128,7 @@ export function AuthMarketingPanel({
   const testimonial = authTestimonials[variant];
 
   return (
-    <aside className="relative hidden h-screen overflow-hidden bg-[#0b4950] px-8 py-10 text-white md:flex md:flex-col md:justify-between lg:px-10 lg:py-12 xl:px-14 xl:py-14">
+    <aside className="relative hidden min-h-[100svh] overflow-hidden bg-[#0b4950] px-8 py-10 text-white md:flex md:flex-col md:justify-between lg:px-10 lg:py-12 xl:px-14 xl:py-14">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_14%,rgba(136,224,216,0.34),transparent_24%),radial-gradient(circle_at_70%_42%,rgba(120,208,201,0.16),transparent_28%),linear-gradient(180deg,#0d4d55_0%,#0a4349_100%)]" />
       <div className="absolute inset-y-0 left-0 w-px bg-white/8" />
 
@@ -200,15 +200,15 @@ export function AuthPageShell({
   illustration?: AuthIllustrationVariant;
 }) {
   return (
-    <main className="h-screen bg-[#f2f6f7]">
+    <main className="min-h-[100svh] overflow-x-hidden bg-[#f2f6f7]">
       <div
         className={cn(
-          "mx-auto grid max-w-[1480px] overflow-hidden rounded-[26px] border border-[#d8e4e7] bg-white",
+          "mx-auto grid min-h-[100svh] max-w-[1480px] bg-white md:overflow-hidden md:rounded-[26px] md:border md:border-[#d8e4e7]",
           showMarketingPanel && "md:grid-cols-[minmax(480px,0.94fr)_minmax(0,1fr)]",
         )}
       >
-        <section className="relative flex h-screen flex-col bg-[#fbfcfc] px-6 py-7 sm:px-10 sm:py-10 lg:px-16 lg:py-12">
-          <div className="relative z-10 flex min-h-full flex-col items-center md:items-start">
+        <section className="relative flex min-h-[100svh] flex-col bg-[#fbfcfc] px-6 py-7 sm:px-10 sm:py-10 lg:px-16 lg:py-12">
+          <div className="relative z-10 flex min-h-[100svh] flex-col items-center md:items-start">
             <Link
               href="/"
               className="inline-flex w-fit self-center md:self-start"
@@ -217,7 +217,7 @@ export function AuthPageShell({
             </Link>
             <div
               className={cn(
-                "auth-hidden-scrollbar flex flex-1 w-full items-center justify-center overflow-y-auto py-10 sm:py-12",
+                "auth-hidden-scrollbar flex w-full flex-1 items-start justify-center py-10 sm:py-12 md:items-center md:overflow-y-auto",
                 showMarketingPanel && "md:justify-start",
               )}
             >
@@ -376,13 +376,13 @@ export function AuthBackButton({
   children?: ReactNode;
 }) {
   return (
-    <a
+    <Link
       href={href}
       className="inline-flex items-center gap-2 text-[15px] font-semibold text-[#5f6b76] transition hover:text-[#0e5961]"
     >
       <span className="text-[22px] leading-none">←</span>
       <span>{children}</span>
-    </a>
+    </Link>
   );
 }
 
