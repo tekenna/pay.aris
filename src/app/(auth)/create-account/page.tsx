@@ -12,6 +12,7 @@ import {
   AuthSplitShell,
   AuthTextInput,
 } from "@/features/auth/components/auth-shell";
+import type { RegistrationDraft } from "@/lib/types";
 import stateCities from "../../../../public/state-cities.json";
 import { authService } from "@/services/auth.service";
 import { useBusinessSession } from "@/store/business-session-provider";
@@ -72,71 +73,166 @@ type CreateAccountFormState = {
   confirmPassword: string;
 };
 
+function findDefaultState(states: NigerianState[], preferredState?: string) {
+  return (
+    preferredState ||
+    states.find((state) => state.name === "Abuja Federal Capital Territory")
+      ?.name ||
+    states[0]?.name ||
+    ""
+  );
+}
+
+function getCitiesForState(states: NigerianState[], stateName: string) {
+  return (
+    states.find((state) => state.name === stateName)?.cities.map((city) => city.name) ||
+    []
+  );
+}
+
+function buildFormStateFromDraft(
+  draft: RegistrationDraft,
+  states: NigerianState[],
+): CreateAccountFormState {
+  const addressState = findDefaultState(states, draft.addressState);
+  const cityOptions = getCitiesForState(states, addressState);
+  const addressCity =
+    draft.addressCity && cityOptions.includes(draft.addressCity)
+      ? draft.addressCity
+      : cityOptions[0] || "";
+
+  return {
+    contactFirstName: draft.contactFirstName || "",
+    contactLastName: draft.contactLastName || "",
+    emailAddress: draft.emailAddress || "",
+    phoneNumber: draft.phoneNumber || "",
+    businessName: draft.businessName || "",
+    taxIdentificationNumber: draft.taxIdentificationNumber || "",
+    addressCountry: draft.addressCountry || "Nigeria",
+    addressState,
+    addressCity,
+    password: "",
+    confirmPassword: "",
+  };
+}
+
+function buildDraftFromForm(
+  draft: RegistrationDraft,
+  form: CreateAccountFormState,
+): RegistrationDraft {
+  return {
+    ...draft,
+    businessName: form.businessName,
+    contactFirstName: form.contactFirstName,
+    contactLastName: form.contactLastName,
+    phoneNumber: form.phoneNumber,
+    emailAddress: form.emailAddress,
+    taxIdentificationNumber: form.taxIdentificationNumber,
+    addressCountry: form.addressCountry,
+    addressState: form.addressState,
+    addressCity: form.addressCity,
+  };
+}
+
+function hasDraftChanged(current: RegistrationDraft, next: RegistrationDraft) {
+  return (
+    current.businessName !== next.businessName ||
+    current.contactFirstName !== next.contactFirstName ||
+    current.contactLastName !== next.contactLastName ||
+    current.phoneNumber !== next.phoneNumber ||
+    current.emailAddress !== next.emailAddress ||
+    current.taxIdentificationNumber !== next.taxIdentificationNumber ||
+    current.addressCountry !== next.addressCountry ||
+    current.addressState !== next.addressState ||
+    current.addressCity !== next.addressCity
+  );
+}
+
 export default function CreateAccountPage() {
   const router = useRouter();
   const {
+    isReady,
     registrationDraft,
     setRegistrationDraft,
     setSession,
     clearRegistrationDraft,
   } = useBusinessSession();
   const states = stateCities as NigerianState[];
-  const initialState =
-    registrationDraft.addressState ||
-    states.find((state) => state.name === "Abuja Federal Capital Territory")
-      ?.name ||
-    states[0]?.name ||
-    "";
-  const initialCities =
-    states
-      .find((state) => state.name === initialState)
-      ?.cities.map((city) => city.name) || [];
-
-  const [form, setForm] = useState<CreateAccountFormState>({
-    contactFirstName: registrationDraft.contactFirstName || "",
-    contactLastName: registrationDraft.contactLastName || "",
-    emailAddress: registrationDraft.emailAddress || "",
-    phoneNumber: registrationDraft.phoneNumber || "",
-    businessName: registrationDraft.businessName || "",
-    taxIdentificationNumber: "",
-    addressCountry: registrationDraft.addressCountry || "Nigeria",
-    addressState: initialState,
-    addressCity: registrationDraft.addressCity || initialCities[0] || "",
-    password: "",
-    confirmPassword: "",
-  });
+  const [form, setForm] = useState<CreateAccountFormState>(() =>
+    buildFormStateFromDraft(registrationDraft, states),
+  );
   const [submitting, setSubmitting] = useState(false);
 
   const cityOptions = useMemo(() => {
-    return (
-      states
-        .find((state) => state.name === form.addressState)
-        ?.cities.map((city) => city.name) || []
-    );
+    return getCitiesForState(states, form.addressState);
   }, [form.addressState, states]);
+  const isEmailValid = /\S+@\S+\.\S+/.test(form.emailAddress.trim());
+  const isPhoneNumberValid =
+    formatNigeriaPhoneNumber(form.phoneNumber).replace(/\D/g, "").length >= 13;
+  const passwordsMatch = form.password === form.confirmPassword;
   const isFormValid =
     form.contactFirstName.trim().length > 0 &&
     form.contactLastName.trim().length > 0 &&
-    /\S+@\S+\.\S+/.test(form.emailAddress) &&
-    formatNigeriaPhoneNumber(form.phoneNumber).replace(/\D/g, "").length >=
-      12 &&
+    isEmailValid &&
+    isPhoneNumberValid &&
     form.businessName.trim().length > 0 &&
     form.addressState.trim().length > 0 &&
     form.addressCity.trim().length > 0 &&
     form.password.length >= 8 &&
-    form.confirmPassword.length >= 8;
+    form.confirmPassword.length >= 8 &&
+    passwordsMatch;
 
   useEffect(() => {
-    if (!registrationDraft.token) {
+    if (isReady && !registrationDraft.token) {
       router.replace("/verify-email");
     }
-  }, [registrationDraft.token, router]);
+  }, [isReady, registrationDraft.token, router]);
+
+  useEffect(() => {
+    if (!isReady) {
+      return;
+    }
+
+    const nextFormState = buildFormStateFromDraft(registrationDraft, states);
+    setForm((current) => {
+      if (
+        current.contactFirstName === nextFormState.contactFirstName &&
+        current.contactLastName === nextFormState.contactLastName &&
+        current.emailAddress === nextFormState.emailAddress &&
+        current.phoneNumber === nextFormState.phoneNumber &&
+        current.businessName === nextFormState.businessName &&
+        current.taxIdentificationNumber === nextFormState.taxIdentificationNumber &&
+        current.addressCountry === nextFormState.addressCountry &&
+        current.addressState === nextFormState.addressState &&
+        current.addressCity === nextFormState.addressCity
+      ) {
+        return current;
+      }
+
+      return {
+        ...nextFormState,
+        password: current.password,
+        confirmPassword: current.confirmPassword,
+      };
+    });
+  }, [isReady, registrationDraft, states]);
 
   useEffect(() => {
     if (cityOptions.length && !cityOptions.includes(form.addressCity)) {
       setForm((current) => ({ ...current, addressCity: cityOptions[0] }));
     }
   }, [cityOptions, form.addressCity]);
+
+  useEffect(() => {
+    if (!isReady) {
+      return;
+    }
+
+    const nextDraft = buildDraftFromForm(registrationDraft, form);
+    if (hasDraftChanged(registrationDraft, nextDraft)) {
+      setRegistrationDraft(nextDraft);
+    }
+  }, [form, isReady, registrationDraft, setRegistrationDraft]);
 
   function updateForm<K extends keyof CreateAccountFormState>(
     key: K,
@@ -160,16 +256,8 @@ export default function CreateAccountPage() {
     const normalizedPhoneNumber = formatNigeriaPhoneNumber(form.phoneNumber);
 
     const nextDraft = {
-      ...registrationDraft,
-      businessName: form.businessName,
-      contactFirstName: form.contactFirstName,
-      contactLastName: form.contactLastName,
+      ...buildDraftFromForm(registrationDraft, form),
       phoneNumber: normalizedPhoneNumber,
-      emailAddress: form.emailAddress,
-      taxIdentificationNumber: form.taxIdentificationNumber,
-      addressCountry: form.addressCountry,
-      addressState: form.addressState,
-      addressCity: form.addressCity,
     };
 
     setRegistrationDraft(nextDraft);
