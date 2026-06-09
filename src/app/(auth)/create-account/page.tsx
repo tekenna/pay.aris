@@ -85,8 +85,9 @@ function findDefaultState(states: NigerianState[], preferredState?: string) {
 
 function getCitiesForState(states: NigerianState[], stateName: string) {
   return (
-    states.find((state) => state.name === stateName)?.cities.map((city) => city.name) ||
-    []
+    states
+      .find((state) => state.name === stateName)
+      ?.cities.map((city) => city.name) || []
   );
 }
 
@@ -154,11 +155,8 @@ function CreateAccountForm({
   registrationDraft: RegistrationDraft;
 }) {
   const router = useRouter();
-  const {
-    setRegistrationDraft,
-    setSession,
-    clearRegistrationDraft,
-  } = useBusinessSession();
+  const { setRegistrationDraft, setSession, clearRegistrationDraft } =
+    useBusinessSession();
   const states = stateCities as NigerianState[];
   const [form, setForm] = useState<CreateAccountFormState>(() =>
     buildFormStateFromDraft(registrationDraft, states),
@@ -205,10 +203,9 @@ function CreateAccountForm({
             return {
               ...form,
               addressState: nextState,
-              addressCity:
-                nextCityOptions.includes(form.addressCity)
-                  ? form.addressCity
-                  : nextCityOptions[0] || "",
+              addressCity: nextCityOptions.includes(form.addressCity)
+                ? form.addressCity
+                : nextCityOptions[0] || "",
             };
           })()
         : {

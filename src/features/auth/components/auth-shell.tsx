@@ -378,7 +378,7 @@ export function AuthBackButton({
   return (
     <Link
       href={href}
-      className="inline-flex items-center gap-2 text-[15px] font-semibold text-[#5f6b76] transition hover:text-[#0e5961]"
+      className="inline-flex w-fit items-center gap-2 text-[15px] font-semibold text-[#5f6b76] transition hover:text-[#0e5961]"
     >
       <span className="text-[22px] leading-none">←</span>
       <span>{children}</span>
